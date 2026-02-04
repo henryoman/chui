@@ -4,8 +4,8 @@ import {
   createCliRenderer,
   InputRenderable,
   TextRenderable,
-  TextAttributes,
 } from "@opentui/core";
+import { asciiStyles, boxStyles, inputStyles, textStyles } from "./ui/design_system.ts";
 
 const renderer = await createCliRenderer({
   exitOnCtrlC: true,
@@ -24,79 +24,79 @@ const showLogin = () => {
 };
 
 const enterButton = new BoxRenderable(renderer, {
-  width: 9,
-  height: 5,
-  border: true,
-  alignItems: "center",
-  justifyContent: "center",
+  ...boxStyles.enterButton,
   onMouseUp: showLogin,
 });
-enterButton.add(new TextRenderable(renderer, { content: "enter" }));
+enterButton.add(
+  new TextRenderable(renderer, {
+    content: "enter",
+    ...textStyles.enterButton,
+  }),
+);
 
 splashView = new BoxRenderable(renderer, {
-  id: "splash",
-  alignItems: "center",
-  justifyContent: "center",
-  flexGrow: 1,
+  ...boxStyles.splashView,
 });
 
 const splashContent = new BoxRenderable(renderer, {
-  flexDirection: "column",
-  alignItems: "center",
-  gap: 1,
+  ...boxStyles.splashContent,
 });
-splashContent.add(new ASCIIFontRenderable(renderer, { font: "block", text: "CHUI" }));
+splashContent.add(
+  new ASCIIFontRenderable(renderer, {
+    text: "CHUI",
+    ...asciiStyles.logo,
+  }),
+);
 splashContent.add(
   new TextRenderable(renderer, {
     content: "instant messenger for the terminal",
-    attributes: TextAttributes.DIM,
+    ...textStyles.splashTagline,
   }),
 );
 splashContent.add(enterButton);
 splashView.add(splashContent);
 
 loginInput = new InputRenderable(renderer, {
-  id: "username-input",
-  width: 24,
+  ...inputStyles.username,
   placeholder: "Enter username...",
 });
 
 const loginButton = new BoxRenderable(renderer, {
-  width: 9,
-  height: 3,
-  border: true,
-  alignItems: "center",
-  justifyContent: "center",
+  ...boxStyles.loginButton,
 });
 loginButton.add(
   new TextRenderable(renderer, {
     content: "login",
-    fg: "#444444",
+    ...textStyles.loginButton,
   }),
 );
 
 loginView = new BoxRenderable(renderer, {
-  id: "login",
-  alignItems: "center",
-  justifyContent: "center",
-  flexGrow: 1,
+  ...boxStyles.loginView,
 });
 
 const loginContent = new BoxRenderable(renderer, {
-  flexDirection: "column",
-  alignItems: "center",
-  gap: 1,
+  ...boxStyles.loginContent,
 });
-loginContent.add(new TextRenderable(renderer, { content: "username" }));
+loginContent.add(
+  new TextRenderable(renderer, {
+    content: "username",
+    ...textStyles.usernameLabel,
+  }),
+);
 
 const loginRow = new BoxRenderable(renderer, {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 1,
+  ...boxStyles.loginRow,
 });
 loginRow.add(loginInput);
 loginRow.add(loginButton);
 loginContent.add(loginRow);
+loginContent.add(
+  new TextRenderable(renderer, {
+    content: "Warning: avoid sharing sensitive info.",
+    ...textStyles.warningMessage,
+  }),
+);
 loginView.add(loginContent);
 
 renderer.root.add(splashView);
