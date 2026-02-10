@@ -3,8 +3,8 @@ import {
   BoxRenderable,
   type RenderContext,
 } from "@opentui/core";
-import { colors, createBodyText, sizes, spacing } from "../design_system";
-import { createButton } from "../components/button";
+import { colors, createBodyText, sizes, spacing } from "../design";
+import { createButton } from "../components/primitives";
 
 export type SplashScreenOptions = {
   onEnter: () => void;

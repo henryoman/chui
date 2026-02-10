@@ -1,3 +1,6 @@
 .env
+.env.local
 node_modules/
 .DS_Store
+convex/.env.local
+convex/_generated/

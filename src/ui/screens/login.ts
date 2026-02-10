@@ -1,6 +1,6 @@
 import { BoxRenderable, InputRenderable, type RenderContext } from "@opentui/core";
-import { createSubheadingText, sizes, spacing } from "../design_system";
-import { createButton } from "../components/button";
+import { createSubheadingText, sizes, spacing } from "../design";
+import { createButton } from "../components/primitives";
 
 export type LoginScreen = {
   view: BoxRenderable;
