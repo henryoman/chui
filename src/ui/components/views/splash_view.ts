@@ -1,6 +1,7 @@
 import { ASCIIFontRenderable, BoxRenderable, type CliRenderer } from "@opentui/core";
 import { colors, createBodyText, sizes, spacing } from "../../design";
 import { createButton } from "../primitives";
+import { createCenteredScreen } from "../../layout";
 
 type SplashViewOptions = {
   onEnter: () => void;
@@ -23,12 +24,7 @@ export const createSplashView = (
     onPress: options.onEnter,
   });
 
-  const splashView = new BoxRenderable(renderer, {
-    id: "splash",
-    alignItems: "center",
-    justifyContent: "center",
-    flexGrow: 1,
-  });
+  const splashView = createCenteredScreen(renderer, "splash");
 
   const splashContent = new BoxRenderable(renderer, {
     flexDirection: "column",

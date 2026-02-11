@@ -26,10 +26,7 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
       enabled: true,
       minPasswordLength: 1,
       maxPasswordLength: 512,
-      sendResetPassword: async ({ user, url }) => {
-        // TODO: integrate with your email provider (e.g. Resend, SendGrid)
-        console.log(`[Password reset] To: ${user.email}, URL: ${url}`);
-      },
+      requireEmailVerification: false,
     },
     plugins: [convex({ authConfig })],
   } satisfies BetterAuthOptions;

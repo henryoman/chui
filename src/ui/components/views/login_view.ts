@@ -1,21 +1,19 @@
 import {
-  BoxRenderable,
   InputRenderableEvents,
-  TextAttributes,
   TextRenderable,
   type CliRenderer,
 } from "@opentui/core";
-import { colors, sizes, spacing } from "../../design";
-import { createButton, createLabel, createTextInput } from "../primitives";
+import { colors, sizes, type StatusVariant } from "../../design";
+import { createAuthFormLayout, createButton, createTextInput } from "../primitives";
 
 type TextInput = ReturnType<typeof createTextInput>;
 
 type LoginView = {
-  view: BoxRenderable;
+  view: ReturnType<typeof createAuthFormLayout>["view"];
   emailInput: TextInput;
   passwordInput: TextInput;
   status: TextRenderable;
-  setStatus: (message: string, color: string) => void;
+  setStatus: (message: string, variant?: StatusVariant) => void;
   focus: () => void;
   getValues: () => { email: string; password: string };
 };
@@ -31,11 +29,13 @@ export const createLoginView = (
 ): LoginView => {
   const emailInput = createTextInput(renderer, {
     id: "email-input",
-    placeholder: "Enter email...",
+    width: sizes.authInputWidth,
+    placeholder: "Enter username or email...",
   });
 
   const passwordInput = createTextInput(renderer, {
     id: "password-input",
+    width: sizes.authInputWidth,
     placeholder: "Enter password...",
   });
 
@@ -46,97 +46,38 @@ export const createLoginView = (
   const loginButton = createButton(renderer, {
     id: "login-button",
     label: "Log in",
-    width: sizes.buttonWide,
+    width: sizes.buttonForm,
     height: sizes.buttonHeight,
     variant: "primary",
     onPress: submit,
   });
 
-  const formWidth = 44;
-
-  const formBox = new BoxRenderable(renderer, {
-    id: "login-form",
-    flexDirection: "column",
-    padding: spacing.md,
-    border: true,
-    width: formWidth,
-    gap: spacing.sm,
+  const formLayout = createAuthFormLayout(renderer, {
+    screenId: "login",
+    formId: "login-form",
   });
 
-  // Email row: label + input
-  const emailRow = new BoxRenderable(renderer, {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  });
-  emailRow.add(createLabel(renderer, "Email"));
-  emailRow.add(emailInput);
-  formBox.add(emailRow);
-
-  // Password row: label + input
-  const passwordRow = new BoxRenderable(renderer, {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  });
-  passwordRow.add(createLabel(renderer, "Password"));
-  passwordRow.add(passwordInput);
-  formBox.add(passwordRow);
-
-  // Button row: right-aligned
-  const buttonRow = new BoxRenderable(renderer, {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: spacing.xs,
-  });
-  buttonRow.add(loginButton);
-  formBox.add(buttonRow);
-
-  const status = new TextRenderable(renderer, {
-    content: " ",
-    fg: colors.gray500,
-  });
-  formBox.add(status);
-
-  const signUpLink = new BoxRenderable(renderer, {
+  formLayout.addField("User", emailInput);
+  formLayout.addField("Password", passwordInput);
+  formLayout.addAction(loginButton);
+  formLayout.addLink({
     id: "sign-up-link",
-    paddingTop: spacing.xs,
-    onMouseUp: () => options.onSignUpClick?.(),
+    text: "Make an account",
+    color: colors.teal,
+    underline: true,
+    onPress: options.onSignUpClick,
   });
-  signUpLink.add(
-    new TextRenderable(renderer, {
-      content: "Make an account",
-      fg: colors.teal,
-      attributes: TextAttributes.UNDERLINE,
-    }),
-  );
-  formBox.add(signUpLink);
-
-  const loginView = new BoxRenderable(renderer, {
-    id: "login",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    flexGrow: 1,
-    width: "100%",
-  });
-  loginView.add(formBox);
 
   [emailInput, passwordInput].forEach((input) => {
     input.on(InputRenderableEvents.ENTER, submit);
   });
 
-  const setStatus = (message: string, color: string) => {
-    status.content = message || " ";
-    status.fg = color;
-  };
-
   return {
-    view: loginView,
+    view: formLayout.view,
     emailInput,
     passwordInput,
-    status,
-    setStatus,
+    status: formLayout.status,
+    setStatus: formLayout.setStatus,
     focus: () => emailInput.focus(),
     getValues: () => ({ email: emailInput.value, password: passwordInput.value }),
   };

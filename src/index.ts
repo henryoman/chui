@@ -8,15 +8,18 @@ import {
 import {
   signInWithEmailAndPassword,
   signUpWithUsernameEmailAndPassword,
+  listConversationMessages,
+  listMyConversations,
   listProfiles,
+  sendDirectMessage,
+  type ConversationMessage,
+  type ConversationSummary,
 } from "./data/convex_actions.js";
 import {
   createHomeView,
   createLoginView,
   createSignUpView,
   createSplashView,
-  createUsersListView,
-  type UserListItem,
 } from "./ui/components/index.js";
 import {
   colors,
@@ -30,7 +33,7 @@ const renderer = await createCliRenderer({
   targetFps: 30,
 });
 
-type AppRoute = "splash" | "login" | "signup" | "home" | "users";
+type AppRoute = "splash" | "login" | "signup" | "home";
 
 const minSizeView = createMinSizeView(renderer);
 let activeRoute: AppRoute = "splash";
@@ -38,14 +41,15 @@ let activeRoute: AppRoute = "splash";
 let loginView: ReturnType<typeof createLoginView>;
 let signUpView: ReturnType<typeof createSignUpView>;
 let homeView: ReturnType<typeof createHomeView>;
-let usersListView: ReturnType<typeof createUsersListView>;
+let currentUsername: string | null = null;
+let selectedChatUsername: string | null = null;
+let conversationIdByUsername = new Map<string, string>();
 
 const renderCurrentRoute = () => {
   removeIfPresent(renderer, "splash");
   removeIfPresent(renderer, "login");
   removeIfPresent(renderer, "signup");
   removeIfPresent(renderer, "home");
-  removeIfPresent(renderer, "users");
   removeIfPresent(renderer, "min-size");
 
   if (!isViewportSupported(renderer.width, renderer.height)) {
@@ -71,18 +75,21 @@ const renderCurrentRoute = () => {
     return;
   }
 
-  if (activeRoute === "users") {
-    renderer.root.add(usersListView.view);
-    usersListView.focus();
-    return;
-  }
-
   renderer.root.add(homeView.view);
+  homeView.focus();
 };
 
-const showHome = () => {
+const showHome = async () => {
   activeRoute = "home";
   renderCurrentRoute();
+  try {
+    await refreshHomeData();
+  } catch (error) {
+    homeView.setUsers([]);
+    homeView.setMessages([]);
+    homeView.setSelectedUser(null);
+    homeView.setStatus(getErrorMessage(error), colors.error);
+  }
 };
 
 const showLogin = () => {
@@ -95,14 +102,119 @@ const showSignUp = () => {
   renderCurrentRoute();
 };
 
-const showUsers = async () => {
-  activeRoute = "users";
-  renderCurrentRoute();
+const getErrorMessage = (error: unknown) => {
+  return error instanceof Error ? error.message : String(error);
+};
+
+const toHomeMessages = (messages: ConversationMessage[]) => {
+  return messages.map((message) => ({
+    id: String(message._id),
+    senderUsername: message.senderUsername,
+    body: message.body,
+    createdAt: message.createdAt,
+  }));
+};
+
+const loadConversationForUser = async (username: string) => {
+  selectedChatUsername = username;
+  homeView.setSelectedUser(username);
+
+  const conversationId = conversationIdByUsername.get(username);
+  if (!conversationId) {
+    homeView.setMessages([]);
+    homeView.setStatus(`No conversation with ${username} yet. Send the first message.`);
+    return;
+  }
+
+  const messages = await listConversationMessages(conversationId, 200);
+  homeView.setMessages(toHomeMessages(messages));
+  homeView.setStatus(" ");
+};
+
+const refreshHomeData = async () => {
+  if (!currentUsername) {
+    homeView.setUsers([]);
+    homeView.setMessages([]);
+    homeView.setSelectedUser(null);
+    homeView.setStatus("Log in to view conversations", colors.warning);
+    return;
+  }
+
+  homeView.setCurrentUsername(currentUsername);
+  homeView.setStatus("Loading conversations...", colors.warning);
+
+  const [profiles, conversations] = await Promise.all([
+    listProfiles(),
+    listMyConversations(200),
+  ]);
+
+  const chatUsers = profiles
+    .map((profile) => profile.username)
+    .filter((username) => username !== currentUsername)
+    .sort((a, b) => a.localeCompare(b));
+
+  const users = chatUsers.map((username) => ({ username }));
+  homeView.setUsers(users);
+
+  const map = new Map<string, string>();
+  conversations.forEach((conversation: ConversationSummary) => {
+    const otherUsername = conversation.otherUser?.username;
+    if (otherUsername) {
+      map.set(otherUsername, String(conversation.conversationId));
+    }
+  });
+  conversationIdByUsername = map;
+
+  if (
+    selectedChatUsername &&
+    users.some((user) => user.username === selectedChatUsername)
+  ) {
+    await loadConversationForUser(selectedChatUsername);
+    return;
+  }
+
+  if (users.length === 0) {
+    selectedChatUsername = null;
+    homeView.setSelectedUser(null);
+    homeView.setMessages([]);
+    homeView.setStatus("No other users available yet");
+    return;
+  }
+
+  selectedChatUsername = users[0]?.username ?? null;
+  homeView.setSelectedUser(selectedChatUsername);
+  if (selectedChatUsername) {
+    await loadConversationForUser(selectedChatUsername);
+  }
+};
+
+const handleSelectChatUser = async (username: string) => {
   try {
-    const users = await listProfiles();
-    usersListView.setUsers(users as UserListItem[]);
-  } catch {
-    usersListView.setUsers([]);
+    await loadConversationForUser(username);
+  } catch (error) {
+    homeView.setStatus(getErrorMessage(error), colors.error);
+  }
+};
+
+const handleSendMessage = async (toUsername: string, body: string) => {
+  const trimmedBody = body.trim();
+  if (!trimmedBody) {
+    homeView.setStatus("Type a message first", colors.warning);
+    return;
+  }
+
+  try {
+    const result = await sendDirectMessage(toUsername, trimmedBody);
+    const conversationId = String(result.conversationId);
+    conversationIdByUsername.set(toUsername, conversationId);
+
+    const messages = await listConversationMessages(conversationId, 200);
+    homeView.setMessages(toHomeMessages(messages));
+    homeView.clearComposer();
+    homeView.setStatus(" ");
+  } catch (error) {
+    homeView.setStatus(getErrorMessage(error), colors.error);
+    throw error;
   }
 };
 
@@ -114,20 +226,20 @@ const handleLogin = async (email: string, password: string) => {
   const e = (email ?? "").trim();
   const p = password ?? "";
   if (!e || !p) {
-    loginView.setStatus("Email and password required", "#F87171");
+    loginView.setStatus("Username/email and password required", "error");
     return;
   }
 
-  loginView.setStatus("Signing in...", "#FBBF24");
+  loginView.setStatus("Signing in...", "warning");
   isSubmitting = true;
 
   try {
     const result = await signInWithEmailAndPassword(e, p);
-    loginView.setStatus(`Logged in as ${result.username}`, "#34D399");
-    showHome();
+    currentUsername = result.username;
+    loginView.setStatus(`Logged in as ${result.username}`, "success");
+    await showHome();
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    loginView.setStatus(message, "#F87171");
+    loginView.setStatus(getErrorMessage(error), "error");
   } finally {
     isSubmitting = false;
   }
@@ -135,33 +247,27 @@ const handleLogin = async (email: string, password: string) => {
 
 const handleSignUp = async (
   username: string,
-  email: string,
   password: string,
 ) => {
   if (isSubmitting) return;
 
   const u = (username ?? "").trim();
-  const e = (email ?? "").trim();
   const p = password ?? "";
-  if (!u || !e || !p) {
-    signUpView.setStatus("Username, email, and password required", "#F87171");
-    return;
-  }
-  if (!e.includes("@")) {
-    signUpView.setStatus("Valid email required for password reset", "#F87171");
+  if (!u || !p) {
+    signUpView.setStatus("Username and password required", "error");
     return;
   }
 
-  signUpView.setStatus("Creating account...", "#FBBF24");
+  signUpView.setStatus("Creating account...", "warning");
   isSubmitting = true;
 
   try {
-    const result = await signUpWithUsernameEmailAndPassword(u, e, p);
-    signUpView.setStatus(`Logged in as ${result.username}`, "#34D399");
-    showHome();
+    const result = await signUpWithUsernameEmailAndPassword(u, p);
+    currentUsername = result.username;
+    signUpView.setStatus(`Logged in as ${result.username}`, "success");
+    await showHome();
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    signUpView.setStatus(message, "#F87171");
+    signUpView.setStatus(getErrorMessage(error), "error");
   } finally {
     isSubmitting = false;
   }
@@ -178,10 +284,9 @@ signUpView = createSignUpView(renderer, {
 });
 
 homeView = createHomeView(renderer, {
-  onUsersClick: showUsers,
+  onSelectUser: handleSelectChatUser,
+  onSendMessage: handleSendMessage,
 });
-
-usersListView = createUsersListView(renderer);
 
 const splashView = createSplashView(renderer, { onEnter: showLogin });
 

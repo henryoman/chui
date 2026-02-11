@@ -32,18 +32,27 @@ export const messageBubbleStyles: Record<
   }
 > = {
   incoming: {
-    borderColor: "#FF7EB6",
-    backgroundColor: "#FFD8E8",
+    borderColor: colors.incomingBubbleBorder,
+    backgroundColor: colors.incomingBubbleBackground,
     alignSelf: "flex-start",
   },
   outgoing: {
-    borderColor: "#2EC4B6",
-    backgroundColor: "#C8F7DC",
+    borderColor: colors.teal,
+    backgroundColor: colors.outgoingBubbleBackground,
     alignSelf: "flex-end",
   },
   system: {
-    borderColor: "#F4D35E",
-    backgroundColor: "#FFEFC2",
+    borderColor: colors.yellow,
+    backgroundColor: colors.systemBubbleBackground,
     alignSelf: "center",
   },
+};
+
+export type StatusVariant = "neutral" | "success" | "warning" | "error";
+
+export const statusStyles: Record<StatusVariant, { textColor: string }> = {
+  neutral: { textColor: colors.gray500 },
+  success: { textColor: colors.success },
+  warning: { textColor: colors.warning },
+  error: { textColor: colors.error },
 };

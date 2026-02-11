@@ -32,13 +32,13 @@ export const textStyles: Record<TextVariant, TextStyle> = {
 
 export const messageTextStyles: Record<MessageTextVariant, TextStyle> = {
   incoming: {
-    fg: "#2A1024",
+    fg: colors.incomingMessageText,
   },
   outgoing: {
-    fg: "#113528",
+    fg: colors.outgoingMessageText,
   },
   system: {
-    fg: "#332A0A",
+    fg: colors.systemMessageText,
   },
 };
 

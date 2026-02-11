@@ -27,12 +27,13 @@ const runQuery = async <TResult>(
 export type AuthLoginResult = {
   token: string;
   username: string;
+  userId: string;
 };
 
 export const signUpWithUsernameEmailAndPassword = async (
   username: string,
-  email: string,
   password: string,
+  email?: string,
 ): Promise<AuthLoginResult> => {
   const result = await runMutation<AuthLoginResult>(
     "auth:signUpWithUsernameEmailAndPassword",
@@ -62,6 +63,49 @@ export const signInWithEmailAndPassword = async (
 
 export const listProfiles = async (): Promise<{ username: string; email?: string }[]> => {
   return await runQuery("users:listProfiles", {});
+};
+
+export type ConversationSummary = {
+  conversationId: string;
+  updatedAt: number;
+  lastMessageAt?: number;
+  lastMessagePreview?: string;
+  otherUser: { userId: string; username: string } | null;
+};
+
+export type ConversationMessage = {
+  _id: string;
+  conversationId: string;
+  senderId: string;
+  body: string;
+  createdAt: number;
+  senderUsername: string;
+};
+
+export const sendDirectMessage = async (
+  toUsername: string,
+  body: string,
+): Promise<{ conversationId: string; messageId: string; createdAt: number }> => {
+  return await runMutation("messages:sendDirectMessage", {
+    toUsername,
+    body,
+  });
+};
+
+export const listMyConversations = async (
+  limit?: number,
+): Promise<ConversationSummary[]> => {
+  return await runQuery("messages:listMyConversations", { limit });
+};
+
+export const listConversationMessages = async (
+  conversationId: string,
+  limit?: number,
+): Promise<ConversationMessage[]> => {
+  return await runQuery("messages:listConversationMessages", {
+    conversationId,
+    limit,
+  });
 };
 
 export const signOut = async (): Promise<void> => {

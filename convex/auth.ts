@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { authComponent, createAuth } from "./betterAuth/auth";
 
@@ -18,13 +18,7 @@ const requireValidUsername = (rawUsername: string) => {
 const usernameToEmail = (username: string) =>
   `${username}@${USERNAME_EMAIL_DOMAIN}`;
 
-type ProfileCtx = {
-  db: {
-    query: (...args: unknown[]) => any;
-    patch: (...args: unknown[]) => Promise<unknown>;
-    insert: (...args: unknown[]) => Promise<unknown>;
-  };
-};
+type ProfileCtx = Pick<MutationCtx, "db">;
 
 const upsertProfile = async (
   ctx: ProfileCtx,
@@ -35,7 +29,7 @@ const upsertProfile = async (
   const now = Date.now();
   const existing = await ctx.db
     .query("profiles")
-    .withIndex("by_username", (q: any) => q.eq("username", username))
+    .withIndex("by_username", (q) => q.eq("username", username))
     .unique();
 
   if (existing) {
@@ -44,10 +38,10 @@ const upsertProfile = async (
       authUserId: authUserId ?? existing.authUserId,
       ...(email !== undefined && { email }),
     });
-    return;
+    return existing._id;
   }
 
-  await ctx.db.insert("profiles", {
+  return await ctx.db.insert("profiles", {
     username,
     authUserId,
     email,
@@ -61,15 +55,15 @@ export const { getAuthUser } = authComponent.clientApi();
 export const signUpWithUsernameEmailAndPassword = mutation({
   args: {
     username: v.string(),
-    email: v.string(),
+    email: v.optional(v.string()),
     password: v.string(),
   },
   handler: async (ctx, args) => {
     const username = requireValidUsername(args.username);
-    const email = args.email.trim().toLowerCase();
-    if (!email || !email.includes("@")) {
-      throw new Error("Valid email required for password reset");
-    }
+    const requestedEmail = (args.email ?? "").trim().toLowerCase();
+    const email = requestedEmail && requestedEmail.includes("@")
+      ? requestedEmail
+      : usernameToEmail(username);
     const auth = createAuth(ctx);
 
     const result = await auth.api.signUpEmail({
@@ -80,11 +74,12 @@ export const signUpWithUsernameEmailAndPassword = mutation({
       },
     });
 
-    await upsertProfile(ctx, username, result.user.id, email);
+    const userId = await upsertProfile(ctx, username, result.user.id, email);
 
     return {
       token: result.token,
       username,
+      userId,
     };
   },
 });
@@ -111,11 +106,12 @@ export const signInWithEmailAndPassword = mutation({
     });
 
     const resolvedUsername = normalizeUsername(result.user.name ?? "");
-    await upsertProfile(ctx, resolvedUsername, result.user.id);
+    const userId = await upsertProfile(ctx, resolvedUsername, result.user.id);
 
     return {
       token: result.token,
       username: resolvedUsername,
+      userId,
     };
   },
 });

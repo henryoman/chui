@@ -1,27 +1,25 @@
 import {
-  BoxRenderable,
   InputRenderableEvents,
   TextRenderable,
   type CliRenderer,
 } from "@opentui/core";
-import { colors, sizes, spacing } from "../../design";
-import { createButton, createLabel, createTextInput } from "../primitives";
+import { colors, sizes, type StatusVariant } from "../../design";
+import { createAuthFormLayout, createButton, createTextInput } from "../primitives";
 
 type TextInput = ReturnType<typeof createTextInput>;
 
 type SignUpView = {
-  view: BoxRenderable;
+  view: ReturnType<typeof createAuthFormLayout>["view"];
   usernameInput: TextInput;
-  emailInput: TextInput;
   passwordInput: TextInput;
   status: TextRenderable;
-  setStatus: (message: string, color: string) => void;
+  setStatus: (message: string, variant?: StatusVariant) => void;
   focus: () => void;
-  getValues: () => { username: string; email: string; password: string };
+  getValues: () => { username: string; password: string };
 };
 
 type SignUpViewOptions = {
-  onSubmit?: (username: string, email: string, password: string) => void;
+  onSubmit?: (username: string, password: string) => void;
   onBackToLogin?: () => void;
 };
 
@@ -31,23 +29,19 @@ export const createSignUpView = (
 ): SignUpView => {
   const usernameInput = createTextInput(renderer, {
     id: "signup-username-input",
+    width: sizes.authInputWidth,
     placeholder: "Enter username...",
-  });
-
-  const emailInput = createTextInput(renderer, {
-    id: "signup-email-input",
-    placeholder: "Enter email (for password reset)...",
   });
 
   const passwordInput = createTextInput(renderer, {
     id: "signup-password-input",
+    width: sizes.authInputWidth,
     placeholder: "Enter password...",
   });
 
   const submit = () => {
     options.onSubmit?.(
       usernameInput.value,
-      emailInput.value,
       passwordInput.value,
     );
   };
@@ -55,107 +49,40 @@ export const createSignUpView = (
   const signUpButton = createButton(renderer, {
     id: "signup-button",
     label: "Create account",
-    width: 14,
+    width: sizes.buttonForm,
     height: sizes.buttonHeight,
     variant: "primary",
     onPress: submit,
   });
 
-  const formWidth = 44;
-
-  const formBox = new BoxRenderable(renderer, {
-    id: "signup-form",
-    flexDirection: "column",
-    padding: spacing.md,
-    border: true,
-    width: formWidth,
-    gap: spacing.sm,
+  const formLayout = createAuthFormLayout(renderer, {
+    screenId: "signup",
+    formId: "signup-form",
   });
 
-  const usernameRow = new BoxRenderable(renderer, {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  });
-  usernameRow.add(createLabel(renderer, "Username"));
-  usernameRow.add(usernameInput);
-  formBox.add(usernameRow);
-
-  const emailRow = new BoxRenderable(renderer, {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  });
-  emailRow.add(createLabel(renderer, "Email"));
-  emailRow.add(emailInput);
-  formBox.add(emailRow);
-
-  const passwordRow = new BoxRenderable(renderer, {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  });
-  passwordRow.add(createLabel(renderer, "Password"));
-  passwordRow.add(passwordInput);
-  formBox.add(passwordRow);
-
-  const buttonRow = new BoxRenderable(renderer, {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: spacing.xs,
-  });
-  buttonRow.add(signUpButton);
-  formBox.add(buttonRow);
-
-  const status = new TextRenderable(renderer, {
-    content: " ",
-    fg: colors.gray500,
-  });
-  formBox.add(status);
-
-  const backLink = new BoxRenderable(renderer, {
+  formLayout.addField("Username", usernameInput);
+  formLayout.addField("Password", passwordInput);
+  formLayout.addAction(signUpButton);
+  formLayout.addLink({
     id: "back-to-login",
-    paddingTop: spacing.xs,
-    onMouseUp: () => options.onBackToLogin?.(),
+    text: "Back to login",
+    color: colors.gray500,
+    onPress: options.onBackToLogin,
   });
-  backLink.add(
-    new TextRenderable(renderer, {
-      content: "Back to login",
-      fg: colors.gray500,
-    }),
-  );
-  formBox.add(backLink);
 
-  const signUpView = new BoxRenderable(renderer, {
-    id: "signup",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    flexGrow: 1,
-    width: "100%",
-  });
-  signUpView.add(formBox);
-
-  [usernameInput, emailInput, passwordInput].forEach((input) => {
+  [usernameInput, passwordInput].forEach((input) => {
     input.on(InputRenderableEvents.ENTER, submit);
   });
 
-  const setStatus = (message: string, color: string) => {
-    status.content = message || " ";
-    status.fg = color;
-  };
-
   return {
-    view: signUpView,
+    view: formLayout.view,
     usernameInput,
-    emailInput,
     passwordInput,
-    status,
-    setStatus,
+    status: formLayout.status,
+    setStatus: formLayout.setStatus,
     focus: () => usernameInput.focus(),
     getValues: () => ({
       username: usernameInput.value,
-      email: emailInput.value,
       password: passwordInput.value,
     }),
   };

@@ -5,7 +5,8 @@ import {
   TextRenderable,
   type CliRenderer,
 } from "@opentui/core";
-import { colors, sizes, spacing } from "../../design";
+import { colors, spacing } from "../../design";
+import { createPaddedColumnScreen } from "../../layout";
 import { createTextInput } from "../primitives";
 
 export type UserListItem = {
@@ -39,7 +40,6 @@ export const createUsersListView = (
   const scrollBox = new ScrollBoxRenderable(renderer, {
     id: "users-scroll",
     height: 15,
-    showScrollbar: true,
   });
 
   let listChildIds: string[] = [];
@@ -84,13 +84,8 @@ export const createUsersListView = (
     renderList();
   });
 
-  const view = new BoxRenderable(renderer, {
+  const view = createPaddedColumnScreen(renderer, {
     id: "users-list",
-    flexDirection: "column",
-    flexGrow: 1,
-    gap: spacing.sm,
-    paddingLeft: spacing.md,
-    paddingRight: spacing.md,
   });
 
   const header = new TextRenderable(renderer, {
