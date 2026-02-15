@@ -1,4 +1,4 @@
-![CHUI screenshot](./chui.png)
+![CHUI screenshot](./public/chui-full.png)
 
 # CHUI
 
