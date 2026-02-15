@@ -1,6 +1,6 @@
-![CHUI screenshot](./public/chui-full.png)
-
 # CHUI
+
+![CHUI screenshot](./public/chui-full.png)
 
 ![Bun](https://img.shields.io/badge/runtime-Bun-black?logo=bun&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/language-TypeScript-3178C6?logo=typescript&logoColor=white)
@@ -8,60 +8,30 @@
 ![Convex](https://img.shields.io/badge/backend-Convex-EE342F)
 ![Better%20Auth](https://img.shields.io/badge/auth-Better%20Auth-2563eb)
 ![Status](https://img.shields.io/badge/status-active%20development-f59e0b)
+![Version](https://img.shields.io/badge/version-0.0.1-22c55e)
 
-A terminal chat app.
+CHUI is a user-facing chat interface built with OpenTUI.
 
-No browser. No mouse. Just messages.
+This is not a published npm/Homebrew package right now. Run it from source.
 
-## Install
+`0.1.0` coming soon!
 
-> Placeholder package name: `chui-cli`
+## Tech stack
 
-### npm
+- Runtime: Bun
+- Language: TypeScript
+- UI: OpenTUI (`@opentui/core`)
+- Backend: Convex
+- Auth: Better Auth (Convex integration)
 
-```bash
-npm install -g chui-cli
-```
+## Current app scope
 
-### Homebrew
+- Splash screen -> login/signup -> home chat view
+- Account creation and sign in
+- User list + direct conversations
+- Send and read messages in the terminal UI
 
-```bash
-brew install chui-cli
-```
-
-## Run
-
-```bash
-chui
-```
-
-## What you do in CHUI
-
-- Sign up or log in.
-- Open a conversation.
-- Send messages.
-
-## Update
-
-### npm
-
-```bash
-npm update -g chui-cli
-```
-
-### Homebrew
-
-```bash
-brew upgrade chui-cli
-```
-
-## Troubleshooting
-
-- Use a terminal that supports modern TUI apps.
-- If auth breaks, restart CHUI.
-- If it feels laggy over SSH, your connection is the bottleneck.
-
-## Run from source (contributors)
+## Run from source
 
 ```bash
 bun install
@@ -69,8 +39,15 @@ bun run convex:dev
 bun dev
 ```
 
-Dev env vars:
+## Environment
+
+Set the environment variables used by your Convex + Better Auth setup:
 
 - `CONVEX_URL` or `NEXT_PUBLIC_CONVEX_URL`
 - `BETTER_AUTH_SECRET`
 - `SITE_URL`
+
+## Notes
+
+- Use a terminal that supports modern TUI rendering for OpenTUI apps.
+- CHUI is under active development, so behavior and flows can change.
