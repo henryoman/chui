@@ -2,7 +2,7 @@
 
 last_commit_subject="$(git log -1 --pretty=%s 2>/dev/null)"
 case "$last_commit_subject" in
-  "chore: bump version to v"*)
+  chore:\ bump\ version\ to\ v*)
     exit 0
     ;;
 esac
