@@ -39,6 +39,27 @@ const renderer = await createCliRenderer({
   targetFps: 30,
 });
 
+const appShell = new BoxRenderable(renderer, {
+  id: "app-shell",
+  flexDirection: "column",
+  flexGrow: 1,
+  width: "100%",
+});
+const appContent = new BoxRenderable(renderer, {
+  id: "app-content",
+  flexGrow: 1,
+  width: "100%",
+});
+const appErrorLine = new TextRenderable(renderer, {
+  id: "app-error-line",
+  content: " ",
+  fg: colors.error,
+  wrapMode: "word",
+});
+appShell.add(appContent);
+appShell.add(appErrorLine);
+renderer.root.add(appShell);
+
 type AppRoute = "splash" | "login" | "signup" | "home";
 
 const minSizeScreen = createMinSizeScreen(renderer);
@@ -52,41 +73,43 @@ let selectedChatUsername: string | null = null;
 let conversationIdByUsername = new Map<string, string>();
 
 const renderCurrentRoute = () => {
-  removeIfPresent(renderer, "splash");
-  removeIfPresent(renderer, "login");
-  removeIfPresent(renderer, "signup");
-  removeIfPresent(renderer, "home");
-  removeIfPresent(renderer, "min-size");
+  removeIfPresent(appContent, "splash");
+  removeIfPresent(appContent, "login");
+  removeIfPresent(appContent, "signup");
+  removeIfPresent(appContent, "home");
+  removeIfPresent(appContent, "min-size");
 
   if (!isViewportSupported(renderer.width, renderer.height)) {
     minSizeScreen.setSize(renderer.width, renderer.height);
-    renderer.root.add(minSizeScreen.view);
+    appContent.add(minSizeScreen.view);
     return;
   }
 
   if (activeRoute === "splash") {
-    renderer.root.add(splashScreen.view);
+    appContent.add(splashScreen.view);
+    splashScreen.focus();
     return;
   }
 
   if (activeRoute === "login") {
-    renderer.root.add(loginScreen.view);
+    appContent.add(loginScreen.view);
     loginScreen.focus();
     return;
   }
 
   if (activeRoute === "signup") {
-    renderer.root.add(signUpScreen.view);
+    appContent.add(signUpScreen.view);
     signUpScreen.focus();
     return;
   }
 
-  renderer.root.add(homeScreen.view);
+  appContent.add(homeScreen.view);
   homeScreen.focus();
 };
 
 const showHome = async () => {
   activeRoute = "home";
+  clearBottomError();
   renderCurrentRoute();
   try {
     await refreshHomeData();
@@ -94,22 +117,34 @@ const showHome = async () => {
     homeScreen.setUsers([]);
     homeScreen.setMessages([]);
     homeScreen.setSelectedUser(null);
-    homeScreen.setStatus(getErrorMessage(error), colors.error);
+    homeScreen.setStatus("Unable to load conversations", colors.error);
+    setBottomError(error);
   }
 };
 
 const showLogin = () => {
   activeRoute = "login";
+  clearBottomError();
   renderCurrentRoute();
 };
 
 const showSignUp = () => {
   activeRoute = "signup";
+  clearBottomError();
   renderCurrentRoute();
 };
 
 const getErrorMessage = (error: unknown) => {
   return error instanceof Error ? error.message : String(error);
+};
+
+const setBottomError = (error: unknown) => {
+  const message = getErrorMessage(error).trim();
+  appErrorLine.content = message || "Unknown error";
+};
+
+const clearBottomError = () => {
+  appErrorLine.content = " ";
 };
 
 const toHomeMessages = (messages: ConversationMessage[]) => {
@@ -198,7 +233,8 @@ const handleSelectChatUser = async (username: string) => {
   try {
     await loadConversationForUser(username);
   } catch (error) {
-    homeScreen.setStatus(getErrorMessage(error), colors.error);
+    homeScreen.setStatus("Unable to load chat", colors.error);
+    setBottomError(error);
   }
 };
 
@@ -218,9 +254,10 @@ const handleSendMessage = async (toUsername: string, body: string) => {
     homeScreen.setMessages(toHomeMessages(messages));
     homeScreen.clearComposer();
     homeScreen.setStatus(" ");
+    clearBottomError();
   } catch (error) {
-    homeScreen.setStatus(getErrorMessage(error), colors.error);
-    throw error;
+    homeScreen.setStatus("Unable to send message", colors.error);
+    setBottomError(error);
   }
 };
 
@@ -243,9 +280,11 @@ const handleLogin = async (email: string, password: string) => {
     const result = await signInWithEmailAndPassword(e, p);
     currentUsername = result.username;
     loginScreen.setStatus(`Logged in as ${result.username}`, "success");
+    clearBottomError();
     await showHome();
   } catch (error) {
-    loginScreen.setStatus(getErrorMessage(error), "error");
+    loginScreen.setStatus("Login failed", "error");
+    setBottomError(error);
   } finally {
     isSubmitting = false;
   }
@@ -271,9 +310,11 @@ const handleSignUp = async (
     const result = await signUpWithUsernameEmailAndPassword(u, p);
     currentUsername = result.username;
     signUpScreen.setStatus(`Logged in as ${result.username}`, "success");
+    clearBottomError();
     await showHome();
   } catch (error) {
-    signUpScreen.setStatus(getErrorMessage(error), "error");
+    signUpScreen.setStatus("Sign up failed", "error");
+    setBottomError(error);
   } finally {
     isSubmitting = false;
   }
@@ -299,9 +340,9 @@ const splashScreen = createSplashScreen(renderer, { onEnter: showLogin });
 renderer.root.on(LayoutEvents.RESIZED, renderCurrentRoute);
 renderCurrentRoute();
 
-function removeIfPresent(renderer: CliRenderer, id: string) {
-  if (renderer.root.getRenderable(id)) {
-    renderer.root.remove(id);
+function removeIfPresent(view: BoxRenderable, id: string) {
+  if (view.getRenderable(id)) {
+    view.remove(id);
   }
 }
 

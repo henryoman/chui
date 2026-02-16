@@ -1,4 +1,8 @@
-import { ASCIIFontRenderable, BoxRenderable, type CliRenderer } from "@opentui/core";
+import {
+  ASCIIFontRenderable,
+  BoxRenderable,
+  type CliRenderer,
+} from "@opentui/core";
 import { colors, createBodyText, sizes, spacing } from "../design";
 import { createButton } from "../primitives/button";
 import { createCenteredScreen } from "../layout";
@@ -9,6 +13,7 @@ type SplashScreenOptions = {
 
 type SplashScreen = {
   view: BoxRenderable;
+  focus: () => void;
 };
 
 export const createSplashScreen = (
@@ -25,6 +30,11 @@ export const createSplashScreen = (
   });
 
   const splashView = createCenteredScreen(renderer, "splash");
+  splashView.onKeyDown = (key) => {
+    if (key.name === "return" || key.name === "enter" || key.sequence === "\r") {
+      options.onEnter();
+    }
+  };
 
   const splashContent = new BoxRenderable(renderer, {
     flexDirection: "column",
@@ -42,5 +52,8 @@ export const createSplashScreen = (
   splashContent.add(enterButton);
   splashView.add(splashContent);
 
-  return { view: splashView };
+  return {
+    view: splashView,
+    focus: () => splashView.focus(),
+  };
 };

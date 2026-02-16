@@ -50,6 +50,21 @@ const upsertProfile = async (
   });
 };
 
+const getConvexJwtFromSessionToken = async (
+  auth: ReturnType<typeof createAuth>,
+  sessionToken: string | null | undefined,
+) => {
+  if (!sessionToken) {
+    throw new Error("Authentication session token missing");
+  }
+  const { token } = await auth.api.getToken({
+    headers: new Headers({
+      Authorization: `Bearer ${sessionToken}`,
+    }),
+  });
+  return token;
+};
+
 export const { getAuthUser } = authComponent.clientApi();
 
 export const signUpWithUsernameEmailAndPassword = mutation({
@@ -73,11 +88,12 @@ export const signUpWithUsernameEmailAndPassword = mutation({
         password: args.password,
       },
     });
+    const convexToken = await getConvexJwtFromSessionToken(auth, result.token);
 
     const userId = await upsertProfile(ctx, username, result.user.id, email);
 
     return {
-      token: result.token,
+      token: convexToken,
       username,
       userId,
     };
@@ -104,12 +120,13 @@ export const signInWithEmailAndPassword = mutation({
         rememberMe: true,
       },
     });
+    const convexToken = await getConvexJwtFromSessionToken(auth, result.token);
 
     const resolvedUsername = normalizeUsername(result.user.name ?? "");
     const userId = await upsertProfile(ctx, resolvedUsername, result.user.id);
 
     return {
-      token: result.token,
+      token: convexToken,
       username: resolvedUsername,
       userId,
     };
