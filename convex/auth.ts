@@ -1,6 +1,13 @@
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import { action, mutation, query } from "./_generated/server";
+import { makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
 import { authComponent, createAuth } from "./betterAuth/auth";
+
+const upsertProfileInternalRef = makeFunctionReference<
+  "mutation",
+  { username: string; authUserId?: string; email?: string },
+  string
+>("profiles_internal:upsertProfileInternal");
 
 const USERNAME_RE = /^[a-z0-9]{3,20}$/;
 const USERNAME_EMAIL_DOMAIN = "users.chui.local";
@@ -17,38 +24,6 @@ const requireValidUsername = (rawUsername: string) => {
 
 const usernameToEmail = (username: string) =>
   `${username}@${USERNAME_EMAIL_DOMAIN}`;
-
-type ProfileCtx = Pick<MutationCtx, "db">;
-
-const upsertProfile = async (
-  ctx: ProfileCtx,
-  username: string,
-  authUserId: string | undefined,
-  email?: string,
-) => {
-  const now = Date.now();
-  const existing = await ctx.db
-    .query("profiles")
-    .withIndex("by_username", (q) => q.eq("username", username))
-    .unique();
-
-  if (existing) {
-    await ctx.db.patch(existing._id, {
-      updatedAt: now,
-      authUserId: authUserId ?? existing.authUserId,
-      ...(email !== undefined && { email }),
-    });
-    return existing._id;
-  }
-
-  return await ctx.db.insert("profiles", {
-    username,
-    authUserId,
-    email,
-    createdAt: now,
-    updatedAt: now,
-  });
-};
 
 const getConvexJwtFromSessionToken = async (
   auth: ReturnType<typeof createAuth>,
@@ -67,7 +42,7 @@ const getConvexJwtFromSessionToken = async (
 
 export const { getAuthUser } = authComponent.clientApi();
 
-export const signUpWithUsernameEmailAndPassword = mutation({
+export const signUpWithUsernameEmailAndPassword = action({
   args: {
     username: v.string(),
     email: v.optional(v.string()),
@@ -90,7 +65,11 @@ export const signUpWithUsernameEmailAndPassword = mutation({
     });
     const convexToken = await getConvexJwtFromSessionToken(auth, result.token);
 
-    const userId = await upsertProfile(ctx, username, result.user.id, email);
+    const userId = await ctx.runMutation(upsertProfileInternalRef, {
+      username,
+      authUserId: result.user.id,
+      email,
+    });
 
     return {
       token: convexToken,
@@ -100,7 +79,7 @@ export const signUpWithUsernameEmailAndPassword = mutation({
   },
 });
 
-export const signInWithEmailAndPassword = mutation({
+export const signInWithEmailAndPassword = action({
   args: {
     email: v.string(),
     password: v.string(),
@@ -123,7 +102,10 @@ export const signInWithEmailAndPassword = mutation({
     const convexToken = await getConvexJwtFromSessionToken(auth, result.token);
 
     const resolvedUsername = normalizeUsername(result.user.name ?? "");
-    const userId = await upsertProfile(ctx, resolvedUsername, result.user.id);
+    const userId = await ctx.runMutation(upsertProfileInternalRef, {
+      username: resolvedUsername,
+      authUserId: result.user.id,
+    });
 
     return {
       token: convexToken,

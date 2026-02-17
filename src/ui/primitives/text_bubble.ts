@@ -28,8 +28,8 @@ export function createTextBubble(renderer: RenderContext, options: TextBubbleOpt
     maxWidth: sizes.bubbleMaxWidth,
     paddingTop: spacing.xs,
     paddingBottom: spacing.xs,
-    paddingLeft: spacing.sm,
-    paddingRight: spacing.sm,
+    paddingLeft: spacing.xs,
+    paddingRight: spacing.xs,
   });
 
   bubble.add(
@@ -37,7 +37,7 @@ export function createTextBubble(renderer: RenderContext, options: TextBubbleOpt
       content: options.text,
       fg: textStyle.fg,
       attributes: textStyle.attributes,
-      wrapMode: "word",
+      wrapMode: "char",
     }),
   );
 

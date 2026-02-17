@@ -1,0 +1,9 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": [
+    "convex/betterAuth/_generated/**"
+  ],
+  "rules": {
+    "unicorn/no-empty-file": "off"
+  }
+}

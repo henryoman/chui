@@ -17,6 +17,13 @@ const runMutation = async <TResult>(
   return await getConvexClient().mutation(path as any, args as any);
 };
 
+const runAction = async <TResult>(
+  path: string,
+  args: Record<string, unknown>,
+): Promise<TResult> => {
+  return await getConvexClient().action(path as any, args as any);
+};
+
 const runQuery = async <TResult>(
   path: string,
   args: Record<string, unknown>,
@@ -35,7 +42,7 @@ export const signUpWithUsernameEmailAndPassword = async (
   password: string,
   email?: string,
 ): Promise<AuthLoginResult> => {
-  const result = await runMutation<AuthLoginResult>(
+  const result = await runAction<AuthLoginResult>(
     "auth:signUpWithUsernameEmailAndPassword",
     { username, email, password },
   );
@@ -50,7 +57,7 @@ export const signInWithEmailAndPassword = async (
   email: string,
   password: string,
 ): Promise<AuthLoginResult> => {
-  const result = await runMutation<AuthLoginResult>(
+  const result = await runAction<AuthLoginResult>(
     "auth:signInWithEmailAndPassword",
     { email, password },
   );

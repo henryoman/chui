@@ -28,6 +28,11 @@ export const createSplashScreen = (
     variant: "accent",
     onPress: options.onEnter,
   });
+  enterButton.onKeyDown = (key) => {
+    if (key.name === "return" || key.name === "enter" || key.sequence === "\r") {
+      options.onEnter();
+    }
+  };
 
   const splashView = createCenteredScreen(renderer, "splash");
   splashView.onKeyDown = (key) => {
@@ -54,6 +59,6 @@ export const createSplashScreen = (
 
   return {
     view: splashView,
-    focus: () => splashView.focus(),
+    focus: () => enterButton.focus(),
   };
 };

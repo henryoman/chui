@@ -1,13 +1,14 @@
 import {
   BoxRenderable,
   InputRenderableEvents,
+  LayoutEvents,
   ScrollBoxRenderable,
   TextAttributes,
   TextRenderable,
   type CliRenderer,
 } from "@opentui/core";
 import { colors, spacing } from "../design";
-import { createButton } from "../primitives/button";
+import { createMessageComposer } from "../primitives/message_composer";
 import { createTextBubble } from "../primitives/text_bubble";
 import { createTextInput } from "../primitives/text_input";
 
@@ -44,14 +45,8 @@ export const createHomeScreen = (
 ): HomeScreen => {
   const sidebarWidth = Math.max(22, Math.min(28, Math.floor(renderer.width * 0.24)));
   const searchInputWidth = Math.max(12, sidebarWidth - 6);
-  const composerInputWidth = Math.max(
-    22,
-    Math.min(64, renderer.width - sidebarWidth - 16),
-  );
-  const replyButtonWidth = Math.max(
-    14,
-    Math.min(24, Math.floor((renderer.width - sidebarWidth - 8) * 0.5)),
-  );
+  const getComposerTotalWidth = () => Math.max(24, renderer.width - sidebarWidth - 16);
+  const composerBaseWidth = Math.min(68, getComposerTotalWidth());
 
   let currentUsername = "";
   let selectedUsername: string | null = null;
@@ -119,7 +114,7 @@ export const createHomeScreen = (
     flexDirection: "column",
     flexGrow: 1,
     border: true,
-    padding: spacing.sm,
+    padding: spacing.xs,
     gap: spacing.xs,
   });
 
@@ -139,42 +134,14 @@ export const createHomeScreen = (
   });
   chatPanel.add(messagesScroll);
 
-  const composerRow = new BoxRenderable(renderer, {
-    id: "chat-composer-row",
-    flexDirection: "row",
-    gap: spacing.sm,
-    alignItems: "center",
-  });
-
-  const composerBox = new BoxRenderable(renderer, {
-    id: "chat-composer-box",
-    border: true,
-    padding: spacing.sm,
-    alignItems: "center",
-    justifyContent: "center",
-    flexGrow: 1,
-  });
-
-  const composerInput = createTextInput(renderer, {
-    id: "chat-composer-input",
-    width: composerInputWidth,
+  const composer = createMessageComposer(renderer, {
+    idPrefix: "chat-composer",
+    totalWidth: composerBaseWidth,
     placeholder: "User types here",
   });
-
   let submitMessage = () => {};
-  const sendButton = createButton(renderer, {
-    id: "chat-send-button",
-    label: "Send",
-    width: replyButtonWidth,
-    height: 3,
-    variant: "muted",
-    onPress: () => submitMessage(),
-  });
-
-  composerBox.add(composerInput);
-  composerRow.add(composerBox);
-  composerRow.add(sendButton);
-  chatPanel.add(composerRow);
+  composer.setOnSubmit(() => submitMessage());
+  chatPanel.add(composer.view);
 
   const status = new TextRenderable(renderer, {
     id: "chat-status",
@@ -299,7 +266,7 @@ export const createHomeScreen = (
       return;
     }
 
-    const body = composerInput.value.trim();
+    const body = composer.getValue().trim();
     if (!body) {
       setStatus("Type a message first", colors.warning);
       return;
@@ -310,7 +277,7 @@ export const createHomeScreen = (
 
     Promise.resolve(options.onSendMessage?.(selectedUsername, body))
       .then(() => {
-        composerInput.value = "";
+        composer.clear();
         setStatus(" ");
       })
       .catch((error) => {
@@ -319,7 +286,7 @@ export const createHomeScreen = (
       })
       .finally(() => {
         sending = false;
-        composerInput.focus();
+        composer.focus();
       });
   };
 
@@ -327,7 +294,9 @@ export const createHomeScreen = (
     userSearchQuery = value;
     renderUsers();
   });
-  composerInput.on(InputRenderableEvents.ENTER, submitMessage);
+  renderer.root.on(LayoutEvents.RESIZED, () => {
+    composer.setTotalWidth(getComposerTotalWidth());
+  });
 
   updateHeader();
   renderUsers();
@@ -337,7 +306,7 @@ export const createHomeScreen = (
     view,
     focus: () => {
       if (selectedUsername) {
-        composerInput.focus();
+        composer.focus();
         return;
       }
 
@@ -367,7 +336,7 @@ export const createHomeScreen = (
       renderMessages();
     },
     clearComposer: () => {
-      composerInput.value = "";
+      composer.clear();
     },
     setStatus,
   };
