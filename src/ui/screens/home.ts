@@ -61,7 +61,6 @@ export const createHomeScreen = (
   let userSearchQuery = "";
   let userRowIds: string[] = [];
   let messageRowIds: string[] = [];
-  const messagePlaceholderId = "chat-placeholder";
 
   const view = new BoxRenderable(renderer, {
     id: "home",
@@ -124,41 +123,12 @@ export const createHomeScreen = (
     gap: spacing.xs,
   });
 
-  const chatTopControls = new BoxRenderable(renderer, {
-    id: "chat-top-controls",
-    flexDirection: "column",
-    gap: spacing.sm,
-  });
-
-  const chatMessageBox = new BoxRenderable(renderer, {
-    id: "chat-message-box",
-    border: true,
-    width: "70%",
-    minHeight: 5,
-    alignSelf: "flex-end",
-    alignItems: "center",
-    justifyContent: "center",
-  });
   const chatHeader = new TextRenderable(renderer, {
     id: "chat-header",
-    content: "Message",
+    content: " ",
     fg: colors.gray100,
   });
-  chatMessageBox.add(chatHeader);
-
-  let submitMessage = () => {};
-  const replyButton = createButton(renderer, {
-    id: "chat-reply-button",
-    label: "Reply",
-    width: replyButtonWidth,
-    height: 5,
-    variant: "muted",
-    onPress: () => submitMessage(),
-  });
-
-  chatTopControls.add(chatMessageBox);
-  chatTopControls.add(replyButton);
-  chatPanel.add(chatTopControls);
+  chatPanel.add(chatHeader);
 
   const messagesScroll = new ScrollBoxRenderable(renderer, {
     id: "chat-messages-scroll",
@@ -169,12 +139,20 @@ export const createHomeScreen = (
   });
   chatPanel.add(messagesScroll);
 
+  const composerRow = new BoxRenderable(renderer, {
+    id: "chat-composer-row",
+    flexDirection: "row",
+    gap: spacing.sm,
+    alignItems: "center",
+  });
+
   const composerBox = new BoxRenderable(renderer, {
     id: "chat-composer-box",
     border: true,
     padding: spacing.sm,
     alignItems: "center",
     justifyContent: "center",
+    flexGrow: 1,
   });
 
   const composerInput = createTextInput(renderer, {
@@ -183,8 +161,20 @@ export const createHomeScreen = (
     placeholder: "User types here",
   });
 
+  let submitMessage = () => {};
+  const sendButton = createButton(renderer, {
+    id: "chat-send-button",
+    label: "Send",
+    width: replyButtonWidth,
+    height: 3,
+    variant: "muted",
+    onPress: () => submitMessage(),
+  });
+
   composerBox.add(composerInput);
-  chatPanel.add(composerBox);
+  composerRow.add(composerBox);
+  composerRow.add(sendButton);
+  chatPanel.add(composerRow);
 
   const status = new TextRenderable(renderer, {
     id: "chat-status",
@@ -203,11 +193,11 @@ export const createHomeScreen = (
 
   const updateHeader = () => {
     if (!selectedUsername) {
-      chatHeader.content = "Message";
+      chatHeader.content = " ";
       return;
     }
 
-    chatHeader.content = selectedUsername;
+    chatHeader.content = `Chat with ${selectedUsername}`;
   };
 
   const renderUsers = () => {
@@ -279,21 +269,6 @@ export const createHomeScreen = (
     messageRowIds = [];
 
     if (messages.length === 0) {
-      const placeholder = new BoxRenderable(renderer, {
-        id: messagePlaceholderId,
-        alignItems: "center",
-        justifyContent: "center",
-        flexGrow: 1,
-      });
-      placeholder.add(
-        new TextRenderable(renderer, {
-          content: "Chat",
-          fg: colors.gray100,
-          attributes: TextAttributes.BOLD,
-        }),
-      );
-      messagesScroll.add(placeholder);
-      messageRowIds.push(messagePlaceholderId);
       return;
     }
 
@@ -360,7 +335,14 @@ export const createHomeScreen = (
 
   return {
     view,
-    focus: () => composerInput.focus(),
+    focus: () => {
+      if (selectedUsername) {
+        composerInput.focus();
+        return;
+      }
+
+      usersSearch.focus();
+    },
     setCurrentUsername: (username: string) => {
       currentUsername = username;
       renderMessages();

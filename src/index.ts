@@ -222,11 +222,10 @@ const refreshHomeData = async () => {
     return;
   }
 
-  selectedChatUsername = users[0]?.username ?? null;
-  homeScreen.setSelectedUser(selectedChatUsername);
-  if (selectedChatUsername) {
-    await loadConversationForUser(selectedChatUsername);
-  }
+  selectedChatUsername = null;
+  homeScreen.setSelectedUser(null);
+  homeScreen.setMessages([]);
+  homeScreen.setStatus("Select a user to view messages");
 };
 
 const handleSelectChatUser = async (username: string) => {
