@@ -73,6 +73,7 @@ export const signUpWithUsernameEmailAndPassword = action({
 
     return {
       token: convexToken,
+      sessionToken: result.token,
       username,
       userId,
     };
@@ -109,9 +110,21 @@ export const signInWithEmailAndPassword = action({
 
     return {
       token: convexToken,
+      sessionToken: result.token,
       username: resolvedUsername,
       userId,
     };
+  },
+});
+
+export const refreshConvexTokenFromSession = action({
+  args: {
+    sessionToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const auth = createAuth(ctx);
+    const token = await getConvexJwtFromSessionToken(auth, args.sessionToken);
+    return { token };
   },
 });
 

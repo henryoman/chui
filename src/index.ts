@@ -8,9 +8,11 @@ import {
 import {
   signInWithEmailAndPassword,
   signUpWithUsernameEmailAndPassword,
+  getCurrentUser,
   listConversationMessages,
   listMyConversations,
   listProfiles,
+  restoreConvexAuthFromSession,
   sendDirectMessage,
   type ConversationMessage,
   type ConversationSummary,
@@ -148,6 +150,47 @@ const setBottomError = (error: unknown) => {
 
 const clearBottomError = () => {
   appErrorLine.content = " ";
+};
+
+const inferUsernameFromCurrentUser = (payload: unknown): string | null => {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const data = payload as {
+    profile?: { username?: unknown };
+    authUser?: { name?: unknown; email?: unknown };
+    identity?: { name?: unknown; email?: unknown };
+  };
+
+  const profileUsername =
+    typeof data.profile?.username === "string" ? data.profile.username.trim() : "";
+  if (profileUsername) {
+    return profileUsername;
+  }
+
+  const authName = typeof data.authUser?.name === "string" ? data.authUser.name.trim() : "";
+  if (authName) {
+    return authName;
+  }
+
+  const identityName = typeof data.identity?.name === "string"
+    ? data.identity.name.trim()
+    : "";
+  if (identityName) {
+    return identityName;
+  }
+
+  const email = typeof data.authUser?.email === "string"
+    ? data.authUser.email.trim()
+    : typeof data.identity?.email === "string"
+      ? data.identity.email.trim()
+      : "";
+  if (email && email.includes("@")) {
+    return email.split("@")[0] ?? null;
+  }
+
+  return null;
 };
 
 const toHomeMessages = (messages: ConversationMessage[]) => {
@@ -352,6 +395,44 @@ const bootTestProfile = async () => {
   }
 };
 
+const bootPersistedSession = async () => {
+  const loadUsername = async () => {
+    const user = await getCurrentUser();
+    return inferUsernameFromCurrentUser(user);
+  };
+
+  try {
+    let restoredUsername = await loadUsername();
+    if (!restoredUsername && await restoreConvexAuthFromSession()) {
+      restoredUsername = await loadUsername();
+    }
+    if (!restoredUsername) {
+      showLogin();
+      return;
+    }
+
+    currentUsername = restoredUsername;
+    clearBottomError();
+    await showHome();
+  } catch (error) {
+    if (await restoreConvexAuthFromSession()) {
+      try {
+        const restoredUsername = await loadUsername();
+        if (restoredUsername) {
+          currentUsername = restoredUsername;
+          clearBottomError();
+          await showHome();
+          return;
+        }
+      } catch {
+        // fall through to normal login path
+      }
+    }
+    showLogin();
+    setBottomError(error);
+  }
+};
+
 loginScreen = createLoginScreen(renderer, {
   onSubmit: handleLogin,
   onSignUpClick: showSignUp,
@@ -371,7 +452,11 @@ const splashScreen = createSplashScreen(renderer, { onEnter: showLogin });
 
 renderer.root.on(LayoutEvents.RESIZED, renderCurrentRoute);
 renderCurrentRoute();
-await bootTestProfile();
+if (autoTestProfileEnabled) {
+  await bootTestProfile();
+} else {
+  await bootPersistedSession();
+}
 
 function removeIfPresent(view: BoxRenderable, id: string) {
   if (view.getRenderable(id)) {

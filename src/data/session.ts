@@ -4,19 +4,44 @@ import { dirname, join } from "node:path";
 
 const sessionFilePath = join(homedir(), ".chui", "session-token");
 
-const readPersistedToken = () => {
+type SessionState = {
+  convexToken: string | null;
+  sessionToken: string | null;
+};
+
+const readPersistedSession = (): SessionState => {
   try {
-    const token = readFileSync(sessionFilePath, "utf8").trim();
-    return token || null;
+    const raw = readFileSync(sessionFilePath, "utf8").trim();
+    if (!raw) {
+      return { convexToken: null, sessionToken: null };
+    }
+
+    if (!raw.startsWith("{")) {
+      // Backward compatibility for old plain-token format.
+      return { convexToken: raw, sessionToken: null };
+    }
+
+    const parsed = JSON.parse(raw) as {
+      convexToken?: unknown;
+      sessionToken?: unknown;
+    };
+    return {
+      convexToken: typeof parsed.convexToken === "string" ? parsed.convexToken : null,
+      sessionToken: typeof parsed.sessionToken === "string" ? parsed.sessionToken : null,
+    };
   } catch {
-    return null;
+    return { convexToken: null, sessionToken: null };
   }
 };
 
-const persistToken = (token: string) => {
+const persistSession = (session: SessionState) => {
   try {
     mkdirSync(dirname(sessionFilePath), { recursive: true });
-    writeFileSync(sessionFilePath, `${token}\n`, "utf8");
+    writeFileSync(
+      sessionFilePath,
+      `${JSON.stringify(session)}\n`,
+      "utf8",
+    );
   } catch {
     // Ignore persistence failures; in-memory auth still works.
   }
@@ -30,16 +55,24 @@ const clearPersistedToken = () => {
   }
 };
 
-let authToken: string | null = readPersistedToken();
+const persisted = readPersistedSession();
+let authToken: string | null = persisted.convexToken;
+let authSessionToken: string | null = persisted.sessionToken;
 
 export const getAuthToken = () => authToken;
+export const getSessionToken = () => authSessionToken;
 
-export const setAuthToken = (token: string) => {
+export const setAuthToken = (token: string, sessionToken?: string | null) => {
   authToken = token;
-  persistToken(token);
+  authSessionToken = sessionToken ?? authSessionToken;
+  persistSession({
+    convexToken: authToken,
+    sessionToken: authSessionToken,
+  });
 };
 
 export const clearAuthToken = () => {
   authToken = null;
+  authSessionToken = null;
   clearPersistedToken();
 };

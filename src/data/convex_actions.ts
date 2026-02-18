@@ -3,7 +3,7 @@ import {
   getConvexClient,
   setConvexAuthToken,
 } from "./convex.js";
-import { clearAuthToken, setAuthToken } from "./session.js";
+import { clearAuthToken, getSessionToken, setAuthToken } from "./session.js";
 
 const runMutation = async <TResult>(
   path: string,
@@ -28,6 +28,7 @@ const runQuery = async <TResult>(
 
 export type AuthLoginResult = {
   token: string;
+  sessionToken?: string;
   username: string;
   userId: string;
 };
@@ -42,7 +43,7 @@ export const signUpWithUsernameEmailAndPassword = async (
     { username, email, password },
   );
 
-  setAuthToken(result.token);
+  setAuthToken(result.token, result.sessionToken ?? null);
   setConvexAuthToken(result.token);
 
   return result;
@@ -57,10 +58,34 @@ export const signInWithEmailAndPassword = async (
     { email, password },
   );
 
-  setAuthToken(result.token);
+  setAuthToken(result.token, result.sessionToken ?? null);
   setConvexAuthToken(result.token);
 
   return result;
+};
+
+export const refreshConvexTokenFromSession = async (
+  sessionToken: string,
+): Promise<{ token: string }> => {
+  return await runAction("auth:refreshConvexTokenFromSession", { sessionToken });
+};
+
+export const restoreConvexAuthFromSession = async (): Promise<boolean> => {
+  const sessionToken = getSessionToken();
+  if (!sessionToken) {
+    return false;
+  }
+
+  try {
+    const refreshed = await refreshConvexTokenFromSession(sessionToken);
+    setAuthToken(refreshed.token, sessionToken);
+    setConvexAuthToken(refreshed.token);
+    return true;
+  } catch {
+    clearAuthToken();
+    clearConvexAuthToken();
+    return false;
+  }
 };
 
 export const listProfiles = async (): Promise<{ username: string; email?: string }[]> => {

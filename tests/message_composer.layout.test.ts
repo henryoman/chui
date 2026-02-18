@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 describe("message composer layout", () => {
-  test("keeps input content flush vertically and padded horizontally", async () => {
+  test("keeps bottom input padding equal to side padding", async () => {
     const testSetup = await createTestRenderer({ width: 120, height: 40 });
     cleanup = () => testSetup.renderer.destroy();
 
@@ -28,12 +28,11 @@ describe("message composer layout", () => {
 
     const contentTop = inputBox.y + 1;
     const contentBottom = inputBox.y + inputBox.height - 1;
-    const topInset = input.y - contentTop;
     const bottomInset = contentBottom - (input.y + input.height);
     const horizontalInset = input.x - (inputBox.x + 1);
 
-    expect(topInset).toBe(0);
-    expect(bottomInset).toBe(0);
+    expect(bottomInset).toBe(horizontalInset);
+    expect(bottomInset).toBe(spacing.xs);
     expect(horizontalInset).toBe(spacing.xs);
   });
 

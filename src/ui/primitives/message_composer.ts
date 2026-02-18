@@ -5,7 +5,6 @@ import {
   type RenderContext,
 } from "@opentui/core";
 import { colors, spacing } from "../design";
-import { createButton } from "./button";
 
 export type MessageComposerOptions = {
   idPrefix?: string;
@@ -35,12 +34,14 @@ export function createMessageComposer(
   const maxLines = 5;
   const borderSize = 2;
   const horizontalPadding = spacing.xs;
+  const verticalBottomPadding = horizontalPadding;
   const bottomSpacing = spacing.xs;
   const baseTotalWidth = Math.max(24, options.totalWidth);
 
   let onSubmit = options.onSubmit ?? (() => {});
   let totalWidth = baseTotalWidth;
   let composerLines = minLines;
+  let controlHeight = minLines + borderSize + verticalBottomPadding;
   let statusMessage = " ";
   let statusColor = colors.textMuted;
 
@@ -64,14 +65,15 @@ export function createMessageComposer(
   const inputBox = new BoxRenderable(renderer, {
     id: `${idPrefix}-box`,
     border: true,
-    height: minLines + borderSize,
+    borderStyle: "single",
+    height: controlHeight,
     minWidth: 12,
     flexDirection: "column",
     gap: 0,
     paddingLeft: horizontalPadding,
     paddingRight: horizontalPadding,
     paddingTop: 0,
-    paddingBottom: 0,
+    paddingBottom: verticalBottomPadding,
     alignItems: "flex-start",
     justifyContent: "flex-start",
   });
@@ -92,16 +94,24 @@ export function createMessageComposer(
     ],
   });
 
-  const sendButton = createButton(renderer, {
+  const sendButton = new BoxRenderable(renderer, {
     id: `${idPrefix}-send-button`,
-    label: "send",
     width: buttonWidth,
-    height: minLines + borderSize,
-    variant: "primary",
+    height: controlHeight,
     borderColor: colors.primary,
+    border: true,
+    borderStyle: "single",
     backgroundColor: colors.primary,
-    textColor: colors.textInverted,
-    onPress: () => onSubmit(),
+    paddingTop: 0,
+    paddingBottom: verticalBottomPadding,
+    alignItems: "center",
+    justifyContent: "flex-start",
+    onMouseUp: () => onSubmit(),
+  });
+  const sendButtonLabel = new TextRenderable(renderer, {
+    id: `${idPrefix}-send-button-label`,
+    content: "send",
+    fg: colors.textInverted,
   });
   const statusText = new TextRenderable(renderer, {
     id: `${idPrefix}-status`,
@@ -111,6 +121,7 @@ export function createMessageComposer(
   });
 
   inputBox.add(input);
+  sendButton.add(sendButtonLabel);
   view.add(statusText);
   row.add(inputBox);
   row.add(sendButton);
@@ -141,8 +152,13 @@ export function createMessageComposer(
       composerLines = nextLines;
     }
     input.height = composerLines;
-    inputBox.height = composerLines + borderSize;
-    sendButton.height = inputBox.height;
+    controlHeight = composerLines + borderSize + verticalBottomPadding;
+    inputBox.height = controlHeight;
+    inputBox.minHeight = controlHeight;
+    inputBox.maxHeight = controlHeight;
+    sendButton.height = controlHeight;
+    sendButton.minHeight = controlHeight;
+    sendButton.maxHeight = controlHeight;
     statusText.height = getStatusLines();
   };
   updateWidths();
