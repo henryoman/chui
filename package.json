@@ -5,7 +5,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun run --watch src/index.ts",
+    "dev": "CHUI_PERSIST_SESSION=0 bun run --hot src/index.ts",
     "lint": "oxlint .",
     "test": "bun test",
     "test:composer": "bun test tests/message_composer.layout.test.ts",

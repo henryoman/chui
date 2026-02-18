@@ -16,6 +16,7 @@ import {
   sortMessagesByCreatedAt,
   toErrorMessage,
 } from "./home_utils";
+import { APP_VERSION } from "../../app/version.js";
 
 export type HomeChatUser = {
   username: string;
@@ -131,6 +132,13 @@ export const createHomeScreen = (
 
   usersPanel.add(usersListTitleWrap);
   usersPanel.add(usersScroll);
+  usersPanel.add(
+    new TextRenderable(renderer, {
+      id: "chat-users-version",
+      content: `v${APP_VERSION}`,
+      fg: colors.textMuted,
+    }),
+  );
 
   const chatPanel = new BoxRenderable(renderer, {
     id: "chat-panel",

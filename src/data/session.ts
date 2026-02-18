@@ -3,10 +3,15 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
 const sessionFilePath = join(homedir(), ".chui", "session-token");
+const shouldPersistSession = process.env.CHUI_PERSIST_SESSION !== "0";
 
 type SessionState = {
   convexToken: string | null;
   sessionToken: string | null;
+};
+
+type SessionGlobal = {
+  __chuiSessionState?: SessionState;
 };
 
 const readPersistedSession = (): SessionState => {
@@ -55,9 +60,23 @@ const clearPersistedToken = () => {
   }
 };
 
-const persisted = readPersistedSession();
-let authToken: string | null = persisted.convexToken;
-let authSessionToken: string | null = persisted.sessionToken;
+const sessionGlobal = globalThis as typeof globalThis & SessionGlobal;
+const initialState = sessionGlobal.__chuiSessionState ??
+  (shouldPersistSession
+    ? readPersistedSession()
+    : { convexToken: null, sessionToken: null });
+
+sessionGlobal.__chuiSessionState = initialState;
+
+let authToken: string | null = initialState.convexToken;
+let authSessionToken: string | null = initialState.sessionToken;
+
+const syncGlobalState = () => {
+  sessionGlobal.__chuiSessionState = {
+    convexToken: authToken,
+    sessionToken: authSessionToken,
+  };
+};
 
 export const getAuthToken = () => authToken;
 export const getSessionToken = () => authSessionToken;
@@ -65,14 +84,18 @@ export const getSessionToken = () => authSessionToken;
 export const setAuthToken = (token: string, sessionToken?: string | null) => {
   authToken = token;
   authSessionToken = sessionToken ?? authSessionToken;
-  persistSession({
-    convexToken: authToken,
-    sessionToken: authSessionToken,
-  });
+  syncGlobalState();
+  if (shouldPersistSession) {
+    persistSession({
+      convexToken: authToken,
+      sessionToken: authSessionToken,
+    });
+  }
 };
 
 export const clearAuthToken = () => {
   authToken = null;
   authSessionToken = null;
+  syncGlobalState();
   clearPersistedToken();
 };
