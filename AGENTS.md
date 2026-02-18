@@ -206,3 +206,80 @@ If `bun run release` fails:
 - If multiple skills apply, use the smallest set that covers the task and state the order being used.
 - Do not assume a skill across turns unless the user re-mentions it.
 - If a skill file is missing or unreadable, note it briefly and proceed with the best fallback approach.
+
+## Repository Breakdown (Current)
+
+This is the practical map of how the repo is organized and what each area owns:
+
+- `src/index.ts`
+  - Application entrypoint
+  - Renderer initialization
+  - Route switching (`splash`, `login`, `signup`, `home`)
+  - High-level orchestration between UI and data calls
+
+- `src/ui/`
+  - Terminal UI layer built on `@opentui/core`
+  - `screens/`: screen-level factories and route views
+  - `primitives/`: reusable UI building blocks (buttons, inputs, auth factory, composer, bubbles, keyboard helpers)
+  - `design/`: centralized style tokens and style maps (colors, spacing, sizes, status, message bubbles, text variants)
+  - `layout.ts`: shared layout creators
+
+- `src/data/`
+  - Convex client access + auth token wiring
+  - Action/query wrappers used by the app (`signIn`, `signUp`, `listProfiles`, conversations, messages)
+  - Session token handling in-memory for current app process
+
+- `convex/`
+  - Backend functions and schema for auth, profiles, and messages
+  - Better Auth integration and Convex auth config
+  - Convex server-side source of truth for app data access
+
+- `scripts/`
+  - `bump-version.ts`: patch version bump + version file/badge sync
+  - `release.ts`: one-command release pipeline
+  - `install.sh`: one-line installer used by curl for latest release install
+
+- `dist/`
+  - Build and release output artifacts
+  - Not source code; generated from scripts
+
+## Deploy / Release Flow (Command-First)
+
+This repo uses manual release deployment from CLI with one command:
+
+- Release command:
+  - `bun run release`
+
+What that command does end-to-end:
+
+1. Confirms git working tree is clean
+2. Confirms GitHub CLI auth is active
+3. Bumps patch version
+4. Runs lint + build checks
+5. Builds macOS arm64 + x64 executables
+6. Compresses release assets (`.gz`)
+7. Generates `checksums.txt`
+8. Commits version files
+9. Tags release (`vX.Y.Z`)
+10. Pushes commit and tag
+11. Creates GitHub Release and uploads compressed binaries + checksums
+
+## Install Flow (From Release)
+
+Once a release is published, users install latest version with:
+
+- `curl -fsSL https://raw.githubusercontent.com/4everlabs/chui/main/scripts/install.sh | sh`
+
+Installer behavior:
+
+1. Detects mac architecture (`arm64` or `x64`)
+2. Downloads matching release asset from latest GitHub release
+3. Downloads `checksums.txt`
+4. Verifies SHA256 checksum
+5. Installs binary to writable bin directory (`/usr/local/bin` or fallback `~/.local/bin`)
+
+## Source of Truth Notes
+
+- Theme/style changes should start in `src/ui/design/tokens.ts` and propagate through semantic design maps.
+- UI behavior should be composed from `src/ui/primitives/*` before adding new screen-level duplication.
+- Data access should remain Convex-only through `src/data/*` wrappers and `convex/*` backend functions.
