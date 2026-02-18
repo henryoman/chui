@@ -75,9 +75,42 @@ const compressAndChecksumAssets = async () => {
   };
 };
 
+const getPreviousTag = async () => {
+  const tag = (await $`sh -lc "git describe --tags --abbrev=0 2>/dev/null || true"`.text()).trim();
+  return tag || null;
+};
+
+const buildReleaseNotes = async (version: string, previousTag: string | null) => {
+  const commitListCommand = previousTag
+    ? `git log ${previousTag}..HEAD --pretty=format:"- %h %s" --no-merges`
+    : `git log HEAD --pretty=format:"- %h %s" --no-merges`;
+
+  const commitList = (await $`sh -lc ${commitListCommand}`.text()).trim();
+  const changes = commitList || "- No user-facing commits found in this range.";
+  const sinceLine = previousTag
+    ? `Changes since \`${previousTag}\`.`
+    : "First release in this repository.";
+
+  return [
+    `## CHUI ${version}`,
+    "",
+    sinceLine,
+    "",
+    "## Commit changelog",
+    changes,
+    "",
+    "## Assets",
+    "- `chui-macos-arm64.gz`",
+    "- `chui-macos-x64.gz`",
+    "- `checksums.txt`",
+    "",
+  ].join("\n");
+};
+
 const main = async () => {
   await ensureCleanGitState();
   await ensureGhAuth();
+  const previousTag = await getPreviousTag();
 
   await $`bun run bump`;
   await $`bun run check`;
@@ -87,15 +120,18 @@ const main = async () => {
 
   const version = await versionFromPackage();
   const tag = `v${version}`;
-  const releaseTitle = `v${version}`;
+  const releaseTitle = `CHUI ${tag}`;
+  const notesPath = `${RELEASE_DIR}/release-notes.md`;
+  const releaseNotes = await buildReleaseNotes(version, previousTag);
+  await writeFile(notesPath, releaseNotes, "utf8");
   const [armAsset, x64Asset] = gzAssets;
 
   await $`git add package.json README.md src/app/version.ts`;
-  await $`git commit -m ${`chore(release): ${tag}`}`;
+  await $`git commit -m ${`release: ${tag}`}`;
   await $`git tag ${tag}`;
   await $`git push`;
   await $`git push origin ${tag}`;
-  await $`gh release create ${tag} ${armAsset} ${x64Asset} ${checksumsPath} --title ${releaseTitle} --generate-notes`;
+  await $`gh release create ${tag} ${armAsset} ${x64Asset} ${checksumsPath} --title ${releaseTitle} --notes-file ${notesPath}`;
 
   console.log(`Release ${tag} published with compressed macOS binaries and checksums.`);
 };
