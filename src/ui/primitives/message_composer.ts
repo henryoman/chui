@@ -29,7 +29,7 @@ export function createMessageComposer(
   options: MessageComposerOptions,
 ): MessageComposer {
   const idPrefix = options.idPrefix ?? "message-composer";
-  const buttonWidth = 6;
+  const buttonWidth = 8;
   const minLines = 1;
   const maxLines = 5;
   const borderSize = 2;
@@ -98,20 +98,22 @@ export function createMessageComposer(
     id: `${idPrefix}-send-button`,
     width: buttonWidth,
     height: controlHeight,
-    borderColor: colors.primary,
     border: true,
     borderStyle: "single",
-    backgroundColor: colors.primary,
+    borderColor: colors.surfaceBorder,
+    backgroundColor: undefined,
+    paddingLeft: horizontalPadding,
+    paddingRight: horizontalPadding,
     paddingTop: 0,
     paddingBottom: verticalBottomPadding,
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "flex-start",
     onMouseUp: () => onSubmit(),
   });
   const sendButtonLabel = new TextRenderable(renderer, {
     id: `${idPrefix}-send-button-label`,
     content: "send",
-    fg: colors.textInverted,
+    fg: colors.textPrimary,
   });
   const statusText = new TextRenderable(renderer, {
     id: `${idPrefix}-status`,
