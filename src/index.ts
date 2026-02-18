@@ -35,29 +35,10 @@ import {
   isViewportSupported,
   spacing,
 } from "./ui/design/index.js";
-import { isCtrlCKey } from "./ui/primitives/keyboard.js";
 
 const renderer = await createCliRenderer({
   exitOnCtrlC: true,
   targetFps: 30,
-});
-
-let isDestroyingRenderer = false;
-const quitApp = () => {
-  if (isDestroyingRenderer) {
-    return;
-  }
-  isDestroyingRenderer = true;
-  renderer.destroy();
-};
-
-renderer.keyInput.on("keypress", (key) => {
-  if (!isCtrlCKey(key)) {
-    return;
-  }
-  key.preventDefault();
-  key.stopPropagation();
-  quitApp();
 });
 
 const appShell = new BoxRenderable(renderer, {
