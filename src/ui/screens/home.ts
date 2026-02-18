@@ -36,6 +36,7 @@ type HomeScreen = {
   setUsers: (users: HomeChatUser[]) => void;
   setSelectedUser: (username: string | null) => void;
   setMessages: (messages: HomeChatMessage[]) => void;
+  appendMessage: (message: HomeChatMessage) => void;
   clearComposer: () => void;
   setStatus: (message: string, color?: string) => void;
 };
@@ -361,6 +362,10 @@ export const createHomeScreen = (
     },
     setMessages: (nextMessages: HomeChatMessage[]) => {
       messages = sortMessagesByCreatedAt(nextMessages);
+      renderMessages();
+    },
+    appendMessage: (message: HomeChatMessage) => {
+      messages = sortMessagesByCreatedAt([...messages, message]);
       renderMessages();
     },
     clearComposer: () => {

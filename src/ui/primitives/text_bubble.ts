@@ -23,23 +23,30 @@ export function createTextBubble(renderer: RenderContext, options: TextBubbleOpt
     border: true,
     borderStyle: "single",
     borderColor: bubbleStyle.borderColor,
-    backgroundColor: bubbleStyle.backgroundColor,
     alignSelf: bubbleStyle.alignSelf,
     maxWidth: sizes.bubbleMaxWidth,
+    padding: 0,
+    alignItems: "stretch",
+  });
+
+  const content = new BoxRenderable(renderer, {
+    width: "100%",
+    backgroundColor: bubbleStyle.backgroundColor,
     paddingTop: spacing.xs,
     paddingBottom: spacing.xs,
     paddingLeft: spacing.xs,
     paddingRight: spacing.xs,
   });
 
-  bubble.add(
+  content.add(
     new TextRenderable(renderer, {
       content: options.text,
       fg: textStyle.fg,
       attributes: textStyle.attributes,
-      wrapMode: "char",
+      wrapMode: "word",
     }),
   );
+  bubble.add(content);
 
   return bubble;
 }

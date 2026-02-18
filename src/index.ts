@@ -35,10 +35,29 @@ import {
   isViewportSupported,
   spacing,
 } from "./ui/design/index.js";
+import { isCtrlCKey } from "./ui/primitives/keyboard.js";
 
 const renderer = await createCliRenderer({
   exitOnCtrlC: true,
   targetFps: 30,
+});
+
+let isDestroyingRenderer = false;
+const quitApp = () => {
+  if (isDestroyingRenderer) {
+    return;
+  }
+  isDestroyingRenderer = true;
+  renderer.destroy();
+};
+
+renderer.keyInput.on("keypress", (key) => {
+  if (!isCtrlCKey(key)) {
+    return;
+  }
+  key.preventDefault();
+  key.stopPropagation();
+  quitApp();
 });
 
 const appShell = new BoxRenderable(renderer, {
@@ -76,6 +95,8 @@ let homeScreen: ReturnType<typeof createHomeScreen>;
 let currentUsername: string | null = null;
 let selectedChatUsername: string | null = null;
 let conversationIdByUsername = new Map<string, string>();
+let activeConversationLoadId = 0;
+const conversationMessageLimit = 60;
 
 const renderCurrentRoute = () => {
   removeIfPresent(appContent, "splash");
@@ -203,17 +224,24 @@ const toHomeMessages = (messages: ConversationMessage[]) => {
 };
 
 const loadConversationForUser = async (username: string) => {
+  const loadId = ++activeConversationLoadId;
   selectedChatUsername = username;
   homeScreen.setSelectedUser(username);
 
   const conversationId = conversationIdByUsername.get(username);
   if (!conversationId) {
+    if (loadId !== activeConversationLoadId || selectedChatUsername !== username) {
+      return;
+    }
     homeScreen.setMessages([]);
     homeScreen.setStatus(`No conversation with ${username} yet. Send the first message.`);
     return;
   }
 
-  const messages = await listConversationMessages(conversationId, 200);
+  const messages = await listConversationMessages(conversationId, conversationMessageLimit);
+  if (loadId !== activeConversationLoadId || selectedChatUsername !== username) {
+    return;
+  }
   homeScreen.setMessages(toHomeMessages(messages));
   homeScreen.setStatus(" ");
 };
@@ -294,9 +322,14 @@ const handleSendMessage = async (toUsername: string, body: string) => {
     const result = await sendDirectMessage(toUsername, trimmedBody);
     const conversationId = String(result.conversationId);
     conversationIdByUsername.set(toUsername, conversationId);
-
-    const messages = await listConversationMessages(conversationId, 200);
-    homeScreen.setMessages(toHomeMessages(messages));
+    if (selectedChatUsername === toUsername && currentUsername) {
+      homeScreen.appendMessage({
+        id: String(result.messageId),
+        senderUsername: currentUsername,
+        body: trimmedBody,
+        createdAt: result.createdAt,
+      });
+    }
     homeScreen.clearComposer();
     homeScreen.setStatus(" ");
     clearBottomError();
