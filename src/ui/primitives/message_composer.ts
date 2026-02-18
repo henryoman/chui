@@ -35,7 +35,7 @@ export function createMessageComposer(
   const maxLines = 5;
   const borderSize = 2;
   const horizontalPadding = spacing.xs;
-  const bottomPadding = spacing.xs;
+  const bottomSpacing = spacing.xs;
   const baseTotalWidth = Math.max(24, options.totalWidth);
 
   let onSubmit = options.onSubmit ?? (() => {});
@@ -58,19 +58,20 @@ export function createMessageComposer(
     flexDirection: "row",
     gap: spacing.xs,
     alignItems: "flex-start",
+    marginBottom: bottomSpacing,
   });
 
   const inputBox = new BoxRenderable(renderer, {
     id: `${idPrefix}-box`,
     border: true,
-    height: minLines + borderSize + bottomPadding,
+    height: minLines + borderSize,
     minWidth: 12,
     flexDirection: "column",
     gap: 0,
     paddingLeft: horizontalPadding,
     paddingRight: horizontalPadding,
     paddingTop: 0,
-    paddingBottom: bottomPadding,
+    paddingBottom: 0,
     alignItems: "flex-start",
     justifyContent: "flex-start",
   });
@@ -95,7 +96,7 @@ export function createMessageComposer(
     id: `${idPrefix}-send-button`,
     label: "send",
     width: buttonWidth,
-    height: minLines + borderSize + bottomPadding,
+    height: minLines + borderSize,
     variant: "primary",
     borderColor: colors.primary,
     backgroundColor: colors.primary,
@@ -140,7 +141,7 @@ export function createMessageComposer(
       composerLines = nextLines;
     }
     input.height = composerLines;
-    inputBox.height = composerLines + borderSize + bottomPadding;
+    inputBox.height = composerLines + borderSize;
     sendButton.height = inputBox.height;
     statusText.height = getStatusLines();
   };

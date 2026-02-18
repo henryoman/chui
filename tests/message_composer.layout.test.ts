@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 describe("message composer layout", () => {
-  test("keeps bottom input margin equal to side padding", async () => {
+  test("keeps input content flush vertically and padded horizontally", async () => {
     const testSetup = await createTestRenderer({ width: 120, height: 40 });
     cleanup = () => testSetup.renderer.destroy();
 
@@ -28,8 +28,13 @@ describe("message composer layout", () => {
 
     const contentTop = inputBox.y + 1;
     const contentBottom = inputBox.y + inputBox.height - 1;
+    const topInset = input.y - contentTop;
     const bottomInset = contentBottom - (input.y + input.height);
-    expect(bottomInset).toBe(spacing.xs);
+    const horizontalInset = input.x - (inputBox.x + 1);
+
+    expect(topInset).toBe(0);
+    expect(bottomInset).toBe(0);
+    expect(horizontalInset).toBe(spacing.xs);
   });
 
   test("keeps send button height and y aligned with input box while input grows", async () => {
