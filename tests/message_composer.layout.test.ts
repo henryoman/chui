@@ -26,7 +26,6 @@ describe("message composer layout", () => {
     const inputBox = (composer.view as any).findDescendantById("composer-test-box") as any;
     const input = composer.input as any;
 
-    const contentTop = inputBox.y + 1;
     const contentBottom = inputBox.y + inputBox.height - 1;
     const bottomInset = contentBottom - (input.y + input.height);
     const horizontalInset = input.x - (inputBox.x + 1);
