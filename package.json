@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "dev": "CHUI_DEV_SESSION_SCOPE=$(date +%s%N) bun run --watch src/index.ts",
-    "lint": "oxlint .",
+    "lint": "bun run scripts/verify-renderables-only.ts && oxlint .",
     "test": "bun test",
     "test:composer": "bun test tests/message_composer.layout.test.ts",
     "test:composer:loop": "for i in {1..25}; do bun run test:composer || exit 1; done",

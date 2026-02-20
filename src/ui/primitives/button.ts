@@ -22,6 +22,7 @@ export function createButton(renderer: RenderContext, options: ButtonOptions) {
     width: options.width,
     height: options.height,
     border: true,
+    borderStyle: "single",
     borderColor: options.borderColor ?? style.borderColor,
     backgroundColor: options.backgroundColor,
     alignItems: "center",

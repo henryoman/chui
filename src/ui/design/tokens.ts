@@ -18,11 +18,8 @@ export const colors = {
   warning: "#FFB020",
   error: "#FF3B30",
 
-  incomingBubbleBorder: "#FF35C9",
   incomingBubbleBackground: "#FFD0F1",
-  outgoingBubbleBorder: "#7A3FC4",
   outgoingBubbleBackground: "#EAD8FF",
-  systemBubbleBorder: "#B86BFF",
   systemBubbleBackground: "#E3D8FF",
   incomingMessageText: "#2B1035",
   outgoingMessageText: "#000000",

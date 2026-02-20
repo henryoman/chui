@@ -7,6 +7,7 @@ import {
 } from "@opentui/core";
 import { createCenteredScreen } from "../layout";
 import { colors, sizes, spacing, statusStyles, type StatusVariant } from "../design";
+import { createPanel } from "./panel";
 import { createLabel } from "./text";
 
 type AuthFormOptions = {
@@ -38,11 +39,10 @@ export function createAuthFormLayout(
 ): AuthFormLayout {
   const view = createCenteredScreen(renderer, options.screenId);
 
-  const form = new BoxRenderable(renderer, {
+  const form = createPanel(renderer, {
     id: options.formId,
     flexDirection: "column",
     width: sizes.authFormWidth,
-    border: true,
     padding: spacing.md,
     gap: spacing.sm,
   });

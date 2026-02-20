@@ -66,6 +66,7 @@ export function createMessageComposer(
     id: `${idPrefix}-box`,
     border: true,
     borderStyle: "single",
+    borderColor: colors.surfaceBorder,
     height: controlHeight,
     minWidth: 12,
     flexDirection: "column",

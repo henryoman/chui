@@ -20,9 +20,6 @@ export function createTextBubble(renderer: RenderContext, options: TextBubbleOpt
 
   const bubble = new BoxRenderable(renderer, {
     id: options.id,
-    border: true,
-    borderStyle: "single",
-    borderColor: bubbleStyle.borderColor,
     alignSelf: bubbleStyle.alignSelf,
     maxWidth: sizes.bubbleMaxWidth,
     padding: 0,

@@ -9,6 +9,7 @@ import {
 } from "@opentui/core";
 import { colors, spacing } from "../design";
 import { createMessageComposer } from "../primitives/message_composer";
+import { createPanel } from "../primitives/panel";
 import { createTextBubble } from "../primitives/text_bubble";
 import { createTextInput } from "../primitives/text_input";
 import {
@@ -91,11 +92,10 @@ export const createHomeScreen = (
     padding: spacing.sm,
   });
 
-  const usersPanel = new BoxRenderable(renderer, {
+  const usersPanel = createPanel(renderer, {
     id: "chat-users-panel",
     width: sidebarWidth,
     minWidth: 22,
-    border: true,
     flexDirection: "column",
     gap: spacing.sm,
     padding: userCardInset,
@@ -141,11 +141,10 @@ export const createHomeScreen = (
     }),
   );
 
-  const chatPanel = new BoxRenderable(renderer, {
+  const chatPanel = createPanel(renderer, {
     id: "chat-panel",
     flexDirection: "column",
     flexGrow: 1,
-    border: true,
     padding: spacing.xs,
     gap: spacing.xs,
   });
@@ -365,7 +364,11 @@ export const createHomeScreen = (
       renderMessages();
     },
     appendMessage: (message: HomeChatMessage) => {
-      messages = sortMessagesByCreatedAt([...messages, message]);
+      if (messages.length === 0 || messages[messages.length - 1]!.createdAt <= message.createdAt) {
+        messages = [...messages, message];
+      } else {
+        messages = sortMessagesByCreatedAt([...messages, message]);
+      }
       renderMessages();
     },
     clearComposer: () => {

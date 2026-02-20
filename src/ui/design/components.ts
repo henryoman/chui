@@ -26,23 +26,19 @@ export type MessageBubbleVariant = "incoming" | "outgoing" | "system";
 export const messageBubbleStyles: Record<
   MessageBubbleVariant,
   {
-    borderColor: string;
     backgroundColor: string;
     alignSelf: "flex-start" | "flex-end" | "center";
   }
 > = {
   incoming: {
-    borderColor: colors.incomingBubbleBorder,
     backgroundColor: colors.incomingBubbleBackground,
     alignSelf: "flex-start",
   },
   outgoing: {
-    borderColor: colors.outgoingBubbleBorder,
     backgroundColor: colors.outgoingBubbleBackground,
     alignSelf: "flex-end",
   },
   system: {
-    borderColor: colors.systemBubbleBorder,
     backgroundColor: colors.systemBubbleBackground,
     alignSelf: "center",
   },
