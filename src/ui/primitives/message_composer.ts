@@ -30,18 +30,19 @@ export function createMessageComposer(
 ): MessageComposer {
   const idPrefix = options.idPrefix ?? "message-composer";
   const buttonWidth = 8;
-  const minLines = 1;
+  const minLines = 3;
   const maxLines = 5;
   const borderSize = 2;
   const horizontalPadding = spacing.xs;
-  const verticalBottomPadding = horizontalPadding;
-  const bottomSpacing = spacing.xs;
+  const verticalTopPadding = 0;
+  const verticalBottomPadding = 0;
+  const bottomSpacing = 0;
   const baseTotalWidth = Math.max(24, options.totalWidth);
 
   let onSubmit = options.onSubmit ?? (() => {});
   let totalWidth = baseTotalWidth;
   let composerLines = minLines;
-  let controlHeight = minLines + borderSize + verticalBottomPadding;
+  let controlHeight = minLines + borderSize + verticalTopPadding + verticalBottomPadding;
   let statusMessage = " ";
   let statusColor = colors.textMuted;
 
@@ -50,6 +51,7 @@ export function createMessageComposer(
     width: totalWidth,
     flexDirection: "column",
     gap: 0,
+    marginTop: spacing.xs,
     alignItems: "flex-start",
   });
 
@@ -73,7 +75,7 @@ export function createMessageComposer(
     gap: 0,
     paddingLeft: horizontalPadding,
     paddingRight: horizontalPadding,
-    paddingTop: 0,
+    paddingTop: verticalTopPadding,
     paddingBottom: verticalBottomPadding,
     alignItems: "flex-start",
     justifyContent: "flex-start",
@@ -109,7 +111,7 @@ export function createMessageComposer(
     backgroundColor: undefined,
     paddingLeft: horizontalPadding,
     paddingRight: horizontalPadding,
-    paddingTop: 0,
+    paddingTop: verticalTopPadding,
     paddingBottom: verticalBottomPadding,
     alignItems: "flex-start",
     justifyContent: "flex-start",
@@ -119,6 +121,7 @@ export function createMessageComposer(
     id: `${idPrefix}-send-button-label`,
     content: "send",
     fg: colors.textPrimary,
+    marginTop: spacing.xs,
   });
   const statusText = new TextRenderable(renderer, {
     id: `${idPrefix}-status`,
@@ -159,7 +162,7 @@ export function createMessageComposer(
       composerLines = nextLines;
     }
     input.height = composerLines;
-    controlHeight = composerLines + borderSize + verticalBottomPadding;
+    controlHeight = composerLines + borderSize + verticalTopPadding + verticalBottomPadding;
     inputBox.height = controlHeight;
     inputBox.minHeight = controlHeight;
     inputBox.maxHeight = controlHeight;

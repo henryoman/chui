@@ -58,17 +58,16 @@ export const createHomeScreen = (
     // Home view uses left/right padding and a single inter-panel gap.
     const appHorizontalPadding = spacing.sm * 2;
     const interPanelGap = spacing.sm;
-    // Chat panel also has its own border + horizontal padding that reduce available content width.
+    // Chat panel horizontal padding reduces available composer width.
+    // Do not subtract border here; it over-shrinks composer width and leaves right-side slack.
     const chatPanelHorizontalPadding = spacing.xs * 2;
-    const chatPanelBorder = 2;
     return Math.max(
       24,
       renderer.width
         - sidebarWidth
         - appHorizontalPadding
         - interPanelGap
-        - chatPanelHorizontalPadding
-        - chatPanelBorder,
+        - chatPanelHorizontalPadding,
     );
   };
   let sidebarWidth = computeSidebarWidth();
@@ -145,7 +144,10 @@ export const createHomeScreen = (
     id: "chat-panel",
     flexDirection: "column",
     flexGrow: 1,
-    padding: spacing.xs,
+    paddingTop: spacing.xs,
+    paddingRight: spacing.xs,
+    paddingLeft: spacing.xs,
+    paddingBottom: 0,
     gap: 0,
   });
 
