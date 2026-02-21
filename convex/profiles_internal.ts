@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
+import { parseUsernameOrThrow, USERNAME_RULES_TEXT } from "../shared/username";
 
 export const upsertProfileInternal = internalMutation({
   args: {
@@ -8,10 +9,11 @@ export const upsertProfileInternal = internalMutation({
     email: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const username = parseUsernameOrThrow(args.username, `Username: ${USERNAME_RULES_TEXT}`);
     const now = Date.now();
     const existing = await ctx.db
       .query("profiles")
-      .withIndex("by_username", (q) => q.eq("username", args.username))
+      .withIndex("by_username", (q) => q.eq("username", username))
       .unique();
 
     if (existing) {
@@ -24,7 +26,7 @@ export const upsertProfileInternal = internalMutation({
     }
 
     return await ctx.db.insert("profiles", {
-      username: args.username,
+      username,
       authUserId: args.authUserId,
       email: args.email,
       createdAt: now,

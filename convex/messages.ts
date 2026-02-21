@@ -1,18 +1,7 @@
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
-
-const USERNAME_RE = /^[a-z0-9]{3,20}$/;
-
-const normalizeUsername = (raw: string) => raw.trim().toLowerCase();
-
-const requireValidUsername = (rawUsername: string) => {
-  const username = normalizeUsername(rawUsername);
-  if (!USERNAME_RE.test(username)) {
-    throw new Error("Username: 3-20 letters/numbers, case insensitive");
-  }
-  return username;
-};
+import { parseUsernameOrThrow, USERNAME_RULES_TEXT } from "../shared/username";
 
 type AuthDbCtx = Pick<QueryCtx, "auth" | "db"> | Pick<MutationCtx, "auth" | "db">;
 
@@ -65,7 +54,7 @@ const sendDirectMessageInternal = async (
   args: { toUsername: string; body: string },
 ) => {
   const sender = await requireCurrentProfile(ctx);
-  const toUsername = requireValidUsername(args.toUsername);
+  const toUsername = parseUsernameOrThrow(args.toUsername, `Username: ${USERNAME_RULES_TEXT}`);
   const body = args.body.trim();
   if (!body) {
     throw new Error("Message body is required");

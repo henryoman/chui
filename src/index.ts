@@ -36,6 +36,12 @@ import {
   spacing,
 } from "./ui/design/index.js";
 import { applyTextCursorStyle } from "./ui/primitives/cursor.js";
+import {
+  parseUsername,
+  parseUsernameOrThrow,
+  USERNAME_RULES_TEXT,
+  type Username,
+} from "../shared/username.js";
 
 const renderer = await createCliRenderer({
   exitOnCtrlC: true,
@@ -75,9 +81,9 @@ const autoTestPassword = process.env.CHUI_TEST_PASSWORD ?? "test";
 let loginScreen: ReturnType<typeof createLoginScreen>;
 let signUpScreen: ReturnType<typeof createSignUpScreen>;
 let homeScreen: ReturnType<typeof createHomeScreen>;
-let currentUsername: string | null = null;
-let selectedChatUsername: string | null = null;
-let conversationIdByUsername = new Map<string, string>();
+let currentUsername: Username | null = null;
+let selectedChatUsername: Username | null = null;
+let conversationIdByUsername = new Map<Username, string>();
 let activeConversationLoadId = 0;
 const conversationMessageLimit = 60;
 
@@ -156,7 +162,7 @@ const clearBottomError = () => {
   appErrorLine.content = " ";
 };
 
-const inferUsernameFromCurrentUser = (payload: unknown): string | null => {
+const inferUsernameFromCurrentUser = (payload: unknown): Username | null => {
   if (!payload || typeof payload !== "object") {
     return null;
   }
@@ -167,20 +173,23 @@ const inferUsernameFromCurrentUser = (payload: unknown): string | null => {
     identity?: { name?: unknown; email?: unknown };
   };
 
-  const profileUsername =
-    typeof data.profile?.username === "string" ? data.profile.username.trim() : "";
+  const profileUsername = typeof data.profile?.username === "string"
+    ? parseUsername(data.profile.username)
+    : null;
   if (profileUsername) {
     return profileUsername;
   }
 
-  const authName = typeof data.authUser?.name === "string" ? data.authUser.name.trim() : "";
+  const authName = typeof data.authUser?.name === "string"
+    ? parseUsername(data.authUser.name)
+    : null;
   if (authName) {
     return authName;
   }
 
   const identityName = typeof data.identity?.name === "string"
-    ? data.identity.name.trim()
-    : "";
+    ? parseUsername(data.identity.name)
+    : null;
   if (identityName) {
     return identityName;
   }
@@ -191,7 +200,8 @@ const inferUsernameFromCurrentUser = (payload: unknown): string | null => {
       ? data.identity.email.trim()
       : "";
   if (email && email.includes("@")) {
-    return email.split("@")[0] ?? null;
+    const fromEmailLocalPart = email.split("@")[0];
+    return fromEmailLocalPart ? parseUsername(fromEmailLocalPart) : null;
   }
 
   return null;
@@ -206,7 +216,7 @@ const toHomeMessages = (messages: ConversationMessage[]) => {
   }));
 };
 
-const loadConversationForUser = async (username: string) => {
+const loadConversationForUser = async (username: Username) => {
   const loadId = ++activeConversationLoadId;
   selectedChatUsername = username;
   homeScreen.setSelectedUser(username);
@@ -254,7 +264,7 @@ const refreshHomeData = async () => {
   const users = chatUsers.map((username) => ({ username }));
   homeScreen.setUsers(users);
 
-  const map = new Map<string, string>();
+  const map = new Map<Username, string>();
   conversations.forEach((conversation: ConversationSummary) => {
     const otherUsername = conversation.otherUser?.username;
     if (otherUsername) {
@@ -287,7 +297,7 @@ const refreshHomeData = async () => {
 
 const handleSelectChatUser = async (username: string) => {
   try {
-    await loadConversationForUser(username);
+    await loadConversationForUser(parseUsernameOrThrow(username));
   } catch (error) {
     homeScreen.setStatus("Unable to load chat", colors.error);
     setBottomError(error);
@@ -302,10 +312,11 @@ const handleSendMessage = async (toUsername: string, body: string) => {
   }
 
   try {
-    const result = await sendDirectMessage(toUsername, trimmedBody);
+    const normalizedToUsername = parseUsernameOrThrow(toUsername);
+    const result = await sendDirectMessage(normalizedToUsername, trimmedBody);
     const conversationId = String(result.conversationId);
-    conversationIdByUsername.set(toUsername, conversationId);
-    if (selectedChatUsername === toUsername && currentUsername) {
+    conversationIdByUsername.set(normalizedToUsername, conversationId);
+    if (selectedChatUsername === normalizedToUsername && currentUsername) {
       homeScreen.appendMessage({
         id: String(result.messageId),
         senderUsername: currentUsername,
@@ -357,10 +368,10 @@ const handleSignUp = async (
 ) => {
   if (isSubmitting) return;
 
-  const u = (username ?? "").trim();
+  const parsedUsername = parseUsername(username ?? "");
   const p = password ?? "";
-  if (!u || !p) {
-    signUpScreen.setStatus("Username and password required", "error");
+  if (!parsedUsername || !p) {
+    signUpScreen.setStatus(`Username (${USERNAME_RULES_TEXT}) and password required`, "error");
     return;
   }
 
@@ -368,7 +379,7 @@ const handleSignUp = async (
   isSubmitting = true;
 
   try {
-    const result = await signUpWithUsernameEmailAndPassword(u, p);
+    const result = await signUpWithUsernameEmailAndPassword(parsedUsername, p);
     currentUsername = result.username;
     signUpScreen.setStatus(`Logged in as ${result.username}`, "success");
     clearBottomError();
@@ -386,7 +397,7 @@ const bootTestProfile = async () => {
     return;
   }
 
-  const username = autoTestUsername.trim();
+  const username = parseUsername(autoTestUsername);
   const password = autoTestPassword;
   if (!username || !password) {
     showLogin();

@@ -2,6 +2,11 @@ import { action, mutation, query } from "./_generated/server";
 import { makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
 import { authComponent, createAuth } from "./betterAuth/auth";
+import {
+  parseUsernameOrThrow,
+  USERNAME_RULES_TEXT,
+  type Username,
+} from "../shared/username";
 
 const upsertProfileInternalRef = makeFunctionReference<
   "mutation",
@@ -9,20 +14,9 @@ const upsertProfileInternalRef = makeFunctionReference<
   string
 >("profiles_internal:upsertProfileInternal");
 
-const USERNAME_RE = /^[a-z0-9]{3,20}$/;
 const USERNAME_EMAIL_DOMAIN = "users.chui.local";
 
-const normalizeUsername = (raw: string) => raw.trim().toLowerCase();
-
-const requireValidUsername = (rawUsername: string) => {
-  const username = normalizeUsername(rawUsername);
-  if (!username || !USERNAME_RE.test(username)) {
-    throw new Error("Username: 3-20 letters/numbers, case insensitive");
-  }
-  return username;
-};
-
-const usernameToEmail = (username: string) =>
+const usernameToEmail = (username: Username) =>
   `${username}@${USERNAME_EMAIL_DOMAIN}`;
 
 const getConvexJwtFromSessionToken = async (
@@ -49,7 +43,7 @@ export const signUpWithUsernameEmailAndPassword = action({
     password: v.string(),
   },
   handler: async (ctx, args) => {
-    const username = requireValidUsername(args.username);
+    const username = parseUsernameOrThrow(args.username, `Username: ${USERNAME_RULES_TEXT}`);
     const requestedEmail = (args.email ?? "").trim().toLowerCase();
     const email = requestedEmail && requestedEmail.includes("@")
       ? requestedEmail
@@ -89,7 +83,7 @@ export const signInWithEmailAndPassword = action({
     let email = args.email.trim().toLowerCase();
     if (!email) throw new Error("Email required");
     if (!email.includes("@")) {
-      email = usernameToEmail(requireValidUsername(args.email));
+      email = usernameToEmail(parseUsernameOrThrow(args.email, `Username: ${USERNAME_RULES_TEXT}`));
     }
     const auth = createAuth(ctx);
 
@@ -102,7 +96,10 @@ export const signInWithEmailAndPassword = action({
     });
     const convexToken = await getConvexJwtFromSessionToken(auth, result.token);
 
-    const resolvedUsername = normalizeUsername(result.user.name ?? "");
+    const resolvedUsername = parseUsernameOrThrow(
+      result.user.name ?? "",
+      `Username: ${USERNAME_RULES_TEXT}`,
+    );
     const userId = await ctx.runMutation(upsertProfileInternalRef, {
       username: resolvedUsername,
       authUserId: result.user.id,

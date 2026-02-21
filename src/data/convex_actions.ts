@@ -4,6 +4,7 @@ import {
   setConvexAuthToken,
 } from "./convex.js";
 import { clearAuthToken, getSessionToken, setAuthToken } from "./session.js";
+import { parseUsernameOrThrow, type Username } from "../../shared/username.js";
 
 const runMutation = async <TResult>(
   path: string,
@@ -29,39 +30,47 @@ const runQuery = async <TResult>(
 export type AuthLoginResult = {
   token: string;
   sessionToken?: string;
-  username: string;
+  username: Username;
   userId: string;
 };
 
 export const signUpWithUsernameEmailAndPassword = async (
-  username: string,
+  username: Username,
   password: string,
   email?: string,
 ): Promise<AuthLoginResult> => {
-  const result = await runAction<AuthLoginResult>(
+  const result = await runAction<Omit<AuthLoginResult, "username"> & { username: string }>(
     "auth:signUpWithUsernameEmailAndPassword",
     { username, email, password },
   );
+  const typedResult: AuthLoginResult = {
+    ...result,
+    username: parseUsernameOrThrow(result.username),
+  };
 
-  setAuthToken(result.token, result.sessionToken ?? null);
-  setConvexAuthToken(result.token);
+  setAuthToken(typedResult.token, typedResult.sessionToken ?? null);
+  setConvexAuthToken(typedResult.token);
 
-  return result;
+  return typedResult;
 };
 
 export const signInWithEmailAndPassword = async (
   email: string,
   password: string,
 ): Promise<AuthLoginResult> => {
-  const result = await runAction<AuthLoginResult>(
+  const result = await runAction<Omit<AuthLoginResult, "username"> & { username: string }>(
     "auth:signInWithEmailAndPassword",
     { email, password },
   );
+  const typedResult: AuthLoginResult = {
+    ...result,
+    username: parseUsernameOrThrow(result.username),
+  };
 
-  setAuthToken(result.token, result.sessionToken ?? null);
-  setConvexAuthToken(result.token);
+  setAuthToken(typedResult.token, typedResult.sessionToken ?? null);
+  setConvexAuthToken(typedResult.token);
 
-  return result;
+  return typedResult;
 };
 
 export const refreshConvexTokenFromSession = async (
@@ -88,8 +97,12 @@ export const restoreConvexAuthFromSession = async (): Promise<boolean> => {
   }
 };
 
-export const listProfiles = async (): Promise<{ username: string; email?: string }[]> => {
-  return await runQuery("auth:listProfiles", {});
+export const listProfiles = async (): Promise<{ username: Username; email?: string }[]> => {
+  const profiles = await runQuery<Array<{ username: string; email?: string }>>("auth:listProfiles", {});
+  return profiles.map((profile) => ({
+    ...profile,
+    username: parseUsernameOrThrow(profile.username),
+  }));
 };
 
 export type ConversationSummary = {
@@ -97,7 +110,7 @@ export type ConversationSummary = {
   updatedAt: number;
   lastMessageAt?: number;
   lastMessagePreview?: string;
-  otherUser: { userId: string; username: string } | null;
+  otherUser: { userId: string; username: Username } | null;
 };
 
 export type ConversationMessage = {
@@ -106,11 +119,11 @@ export type ConversationMessage = {
   senderId: string;
   body: string;
   createdAt: number;
-  senderUsername: string;
+  senderUsername: Username;
 };
 
 export const sendDirectMessage = async (
-  toUsername: string,
+  toUsername: Username,
   body: string,
 ): Promise<{ conversationId: string; messageId: string; createdAt: number }> => {
   return await runMutation("messages:sendDirectMessage", {
@@ -122,17 +135,34 @@ export const sendDirectMessage = async (
 export const listMyConversations = async (
   limit?: number,
 ): Promise<ConversationSummary[]> => {
-  return await runQuery("messages:listMyConversations", { limit });
+  const conversations = await runQuery<Array<Omit<ConversationSummary, "otherUser"> & {
+    otherUser: { userId: string; username: string } | null;
+  }>>("messages:listMyConversations", { limit });
+  return conversations.map((conversation) => ({
+    ...conversation,
+    otherUser: conversation.otherUser
+      ? {
+          ...conversation.otherUser,
+          username: parseUsernameOrThrow(conversation.otherUser.username),
+        }
+      : null,
+  }));
 };
 
 export const listConversationMessages = async (
   conversationId: string,
   limit?: number,
 ): Promise<ConversationMessage[]> => {
-  return await runQuery("messages:listConversationMessages", {
+  const messages = await runQuery<Array<Omit<ConversationMessage, "senderUsername"> & {
+    senderUsername: string;
+  }>>("messages:listConversationMessages", {
     conversationId,
     limit,
   });
+  return messages.map((message) => ({
+    ...message,
+    senderUsername: parseUsernameOrThrow(message.senderUsername),
+  }));
 };
 
 export const signOut = async (): Promise<void> => {

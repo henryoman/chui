@@ -216,10 +216,13 @@ export const createHomeScreen = (
         borderStyle: "single",
         borderColor: selected ? colors.primary : colors.surfaceBorderMuted,
         backgroundColor: selected ? colors.outgoingBubbleBackground : undefined,
-        paddingLeft: userCardInset,
-        paddingRight: userCardInset,
-        paddingTop: spacing.xs,
-        paddingBottom: spacing.xs,
+        alignSelf: "flex-start",
+        marginLeft: userCardInset,
+        marginRight: userCardInset,
+        paddingLeft: spacing.xs,
+        paddingRight: spacing.xs,
+        paddingTop: 0,
+        paddingBottom: 0,
         marginBottom: userCardInset,
         onMouseUp: () => {
           if (selectedUsername !== user.username) {
